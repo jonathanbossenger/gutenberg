@@ -108,6 +108,9 @@ export const parameters = {
 		sort: 'requiredFirst',
 	},
 	docs: {
+		controls: {
+			sort: 'requiredFirst',
+		},
 		// Flips the order of the description and the primary component story
 		// so the component is always visible before the fold.
 		page: () => (
