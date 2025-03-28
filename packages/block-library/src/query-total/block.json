@@ -23,9 +23,9 @@
 		},
 		"color": {
 			"gradients": true,
-			"text": true,
 			"__experimentalDefaultControls": {
-				"background": true
+				"background": true,
+				"text": true
 			}
 		},
 		"typography": {
@@ -40,6 +40,22 @@
 			"__experimentalDefaultControls": {
 				"fontSize": true
 			}
+		},
+		"__experimentalBorder": {
+			"radius": true,
+			"color": true,
+			"width": true,
+			"style": true,
+			"__experimentalDefaultControls": {
+				"radius": true,
+				"color": true,
+				"width": true,
+				"style": true
+			}
+		},
+		"interactivity": {
+			"clientNavigation": true
 		}
-	}
+	},
+	"style": "wp-block-query-total"
 }

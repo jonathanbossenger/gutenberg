@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 10.21.0 (2025-03-27)
+
+## 10.20.0 (2025-03-13)
+
+## 10.19.0 (2025-02-28)
+
+## 10.18.0 (2025-02-12)
+
+## 10.17.0 (2025-01-29)
+
+### Enhancements
+
+-   Add a `WP_ENV_MULTISITE` environment variable to override the `multisite` option ([#68792](https://github.com/WordPress/gutenberg/pull/68792)).
+
+## 10.16.0 (2025-01-15)
+
+## 10.15.0 (2025-01-02)
+
+### Enhancements
+
+-   Add support for WordPress multisite installations. Enabled via the new `multisite` environment config ([#67845](https://github.com/WordPress/gutenberg/pull/67845)).
+
 ### Internal
 
 -   Refactored the code to use new API introduced together with `@inquirer/prompts` instead of legacy `inquirer` package ([#67877](https://github.com/WordPress/gutenberg/pull/67877)).
@@ -10,8 +32,7 @@
 
 ### Enhancements
 
--   Add phpMyAdmin as an optional service. Enabled via the new `phpmyadminPort` environment config, as well as env vars `WP_ENV_PHPMYADMIN_PORT` and `WP_ENV_TESTS_PHPMYADMIN_PORT`.
--   Add support for WordPress multisite installations. Enabled via the new `multisite` environment config.
+-   Add phpMyAdmin as an optional service. Enabled via the new `phpmyadminPort` environment config, as well as env vars `WP_ENV_PHPMYADMIN_PORT` and `WP_ENV_TESTS_PHPMYADMIN_PORT` ([#67588](https://github.com/WordPress/gutenberg/pull/67588)).
 
 ### Internal
 
@@ -317,7 +338,7 @@
 
 ### Breaking Changes
 
--   `wp-env start` is now the only command which writes to the docker configuration files. Previously, running any command would also parse the config and then write it to the correct location. Now, other commands still parse the config, but they will not overwrite the confugiration which was set by wp-env start. This allows parameters to be passed to wp-env start which can affect the configuration.
+-   `wp-env start` is now the only command which writes to the docker configuration files. Previously, running any command would also parse the config and then write it to the correct location. Now, other commands still parse the config, but they will not overwrite the configuration which was set by wp-env start. This allows parameters to be passed to wp-env start which can affect the configuration.
 
 ### Enhancements
 

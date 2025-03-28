@@ -6,12 +6,13 @@ import {
 	__experimentalHStack as HStack,
 	__experimentalVStack as VStack,
 	__experimentalText as Text,
+	privateApis as componentsPrivateApis,
 } from '@wordpress/components';
 import { store as coreStore } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
 import { useMemo } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
-import { decodeEntities } from '@wordpress/html-entities';
+import { __unstableStripHTML as stripHTML } from '@wordpress/dom';
 
 /**
  * Internal dependencies
@@ -25,6 +26,7 @@ import { unlock } from '../../lock-unlock';
 import PostActions from '../post-actions';
 import usePageTypeBadge from '../../utils/pageTypeBadge';
 import { getTemplateInfo } from '../../utils/get-template-info';
+const { Badge } = unlock( componentsPrivateApis );
 
 /**
  * Renders a title of the post type and the available quick actions available within a 3-dot dropdown.
@@ -46,7 +48,7 @@ export default function PostCardPanel( {
 	);
 	const { postTitle, icon, labels } = useSelect(
 		( select ) => {
-			const { getEditedEntityRecord, getEntityRecord, getPostType } =
+			const { getEditedEntityRecord, getCurrentTheme, getPostType } =
 				select( coreStore );
 			const { getPostIcon } = unlock( select( editorStore ) );
 			let _title = '';
@@ -57,7 +59,7 @@ export default function PostCardPanel( {
 			);
 			if ( postIds.length === 1 ) {
 				const { default_template_types: templateTypes = [] } =
-					getEntityRecord( 'root', '__unstableBase' ) ?? {};
+					getCurrentTheme() ?? {};
 
 				const _templateInfo = [
 					TEMPLATE_POST_TYPE,
@@ -92,7 +94,7 @@ export default function PostCardPanel( {
 			labels?.name
 		);
 	} else if ( postTitle ) {
-		title = decodeEntities( postTitle );
+		title = stripHTML( postTitle );
 	}
 
 	return (
@@ -109,18 +111,20 @@ export default function PostCardPanel( {
 					className="editor-post-card-panel__title"
 					as="h2"
 				>
-					{ title }
+					<span className="editor-post-card-panel__title-name">
+						{ title }
+					</span>
 					{ pageTypeBadge && postIds.length === 1 && (
-						<span className="editor-post-card-panel__title-badge">
-							{ pageTypeBadge }
-						</span>
+						<Badge>{ pageTypeBadge }</Badge>
 					) }
 				</Text>
-				<PostActions
-					postType={ postType }
-					postId={ postId }
-					onActionPerformed={ onActionPerformed }
-				/>
+				{ postIds.length === 1 && (
+					<PostActions
+						postType={ postType }
+						postId={ postIds[ 0 ] }
+						onActionPerformed={ onActionPerformed }
+					/>
+				) }
 			</HStack>
 			{ postIds.length > 1 && (
 				<Text className="editor-post-card-panel__description">

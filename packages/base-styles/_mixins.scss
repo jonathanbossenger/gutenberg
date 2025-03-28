@@ -141,10 +141,13 @@
 // Tabs, Inputs, Square buttons.
 @mixin input-style__neutral() {
 	box-shadow: 0 0 0 transparent;
-	transition: box-shadow 0.1s linear;
+
+	@media not (prefers-reduced-motion) {
+		transition: box-shadow 0.1s linear;
+	}
+
 	border-radius: $radius-small;
 	border: $border-width solid $gray-600;
-	@include reduce-motion("transition");
 }
 
 
@@ -281,7 +284,6 @@
 	}
 
 	&::-moz-placeholder {
-		opacity: 1; // Necessary because Firefox reduces this from 1.
 		color: $dark-gray-placeholder;
 	}
 

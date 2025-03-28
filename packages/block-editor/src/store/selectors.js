@@ -1626,15 +1626,23 @@ const isBlockVisibleInTheInserter = (
 		Array.isArray( blockType.parent ) ? blockType.parent : []
 	).concat( Array.isArray( blockType.ancestor ) ? blockType.ancestor : [] );
 	if ( parents.length > 0 ) {
-		const rootBlockName = getBlockName( state, rootClientId );
 		// This is an exception to the rule that says that all blocks are visible in the inserter.
 		// Blocks that require a given parent or ancestor are only visible if we're within that parent.
-		return (
-			parents.includes( 'core/post-content' ) ||
-			parents.includes( rootBlockName ) ||
-			getBlockParentsByBlockName( state, rootClientId, parents ).length >
-				0
-		);
+		if ( parents.includes( 'core/post-content' ) ) {
+			return true;
+		}
+
+		let current = rootClientId;
+		let hasParent = false;
+		do {
+			if ( parents.includes( getBlockName( state, current ) ) ) {
+				hasParent = true;
+				break;
+			}
+			current = state.blocks.parents.get( current );
+		} while ( current );
+
+		return hasParent;
 	}
 
 	return true;
@@ -1958,7 +1966,7 @@ const canIncludeBlockTypeInInserter = ( state, blockType, rootClientId ) => {
 };
 
 /**
- * Return a function to be used to tranform a block variation to an inserter item
+ * Return a function to be used to transform a block variation to an inserter item
  *
  * @param {Object} state Global State
  * @param {Object} item  Denormalized inserter item
@@ -2021,7 +2029,7 @@ const calculateFrecency = ( time, count ) => {
 /**
  * Returns a function that accepts a block type and builds an item to be shown
  * in a specific context. It's used for building items for Inserter and available
- * block Transfroms list.
+ * block Transforms list.
  *
  * @param {Object} state              Editor state.
  * @param {Object} options            Options object for handling the building of a block type.
@@ -2522,7 +2530,7 @@ export const __experimentalGetAllowedPatterns = createRegistrySelector(
  * or blocks transformations.
  *
  * @param {Object}          state        Editor state.
- * @param {string|string[]} blockNames   Block's name or array of block names to find matching pattens.
+ * @param {string|string[]} blockNames   Block's name or array of block names to find matching patterns.
  * @param {?string}         rootClientId Optional target root client ID.
  *
  * @return {Array} The list of matched block patterns based on declared `blockTypes` and block name.
@@ -2941,7 +2949,7 @@ export const __unstableGetVisibleBlocks = createSelector(
 );
 
 export function __unstableHasActiveBlockOverlayActive( state, clientId ) {
-	// Prevent overlay on blocks with a non-default editing mode. If the mdoe is
+	// Prevent overlay on blocks with a non-default editing mode. If the mode is
 	// 'disabled' then the overlay is redundant since the block can't be
 	// selected. If the mode is 'contentOnly' then the overlay is redundant
 	// since there will be no controls to interact with once selected.
@@ -3065,7 +3073,7 @@ export const getBlockEditingMode = createRegistrySelector(
 				return state.derivedNavModeBlockEditingModes.get( clientId );
 			}
 
-			// In normal mode, consider that an explicitely set editing mode takes over.
+			// In normal mode, consider that an explicitly set editing mode takes over.
 			const blockEditingMode = state.blockEditingModes.get( clientId );
 			if ( blockEditingMode ) {
 				return blockEditingMode;
@@ -3087,9 +3095,7 @@ export const getBlockEditingMode = createRegistrySelector(
 				const isContent = hasContentRoleAttribute( name );
 				return isContent ? 'contentOnly' : 'disabled';
 			}
-			// Otherwise, check if there's an ancestor that is contentOnly
-			const parentMode = getBlockEditingMode( state, rootClientId );
-			return parentMode === 'contentOnly' ? 'default' : parentMode;
+			return 'default';
 		}
 );
 

@@ -23,7 +23,6 @@ import {
 } from '@wordpress/block-editor';
 import { getBlockSupport } from '@wordpress/blocks';
 import { formatLtr } from '@wordpress/icons';
-
 /**
  * Internal dependencies
  */

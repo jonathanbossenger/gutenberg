@@ -105,7 +105,7 @@ export const getEntityRecord =
 						}
 					);
 
-					// Boostraps the edited document as well (and load from peers).
+					// Bootstraps the edited document as well (and load from peers).
 					await getSyncProvider().bootstrap(
 						entityConfig.syncObjectType + '--edit',
 						objectId,
@@ -580,8 +580,15 @@ export const canUserEditEntityRecord =
 export const getAutosaves =
 	( postType, postId ) =>
 	async ( { dispatch, resolveSelect } ) => {
-		const { rest_base: restBase, rest_namespace: restNamespace = 'wp/v2' } =
-			await resolveSelect.getPostType( postType );
+		const {
+			rest_base: restBase,
+			rest_namespace: restNamespace = 'wp/v2',
+			supports,
+		} = await resolveSelect.getPostType( postType );
+		if ( ! supports?.autosave ) {
+			return;
+		}
+
 		const autosaves = await apiFetch( {
 			path: `/${ restNamespace }/${ restBase }/${ postId }/autosaves?context=edit`,
 		} );

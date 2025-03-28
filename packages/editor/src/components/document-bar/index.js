@@ -22,6 +22,7 @@ import { store as commandsStore } from '@wordpress/commands';
 import { useRef, useEffect } from '@wordpress/element';
 import { useReducedMotion } from '@wordpress/compose';
 import { decodeEntities } from '@wordpress/html-entities';
+import { __unstableStripHTML as stripHTML } from '@wordpress/dom';
 
 /**
  * Internal dependencies
@@ -73,6 +74,7 @@ export default function DocumentBar( props ) {
 		const {
 			getEditedEntityRecord,
 			getPostType,
+			getCurrentTheme,
 			isResolving: isResolvingSelector,
 		} = select( coreStore );
 		const _postType = getCurrentPostType();
@@ -84,8 +86,7 @@ export default function DocumentBar( props ) {
 		);
 
 		const { default_template_types: templateTypes = [] } =
-			select( coreStore ).getEntityRecord( 'root', '__unstableBase' ) ??
-			{};
+			getCurrentTheme() ?? {};
 
 		const _templateInfo = getTemplateInfo( {
 			templateTypes,
@@ -200,7 +201,7 @@ export default function DocumentBar( props ) {
 						<Text size="body" as="h1">
 							<span className="editor-document-bar__post-title">
 								{ title
-									? decodeEntities( title )
+									? stripHTML( title )
 									: __( 'No title' ) }
 							</span>
 							{ pageTypeBadge && (

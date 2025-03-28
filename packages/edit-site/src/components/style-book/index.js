@@ -24,7 +24,6 @@ import {
 } from '@wordpress/block-editor';
 import { privateApis as editorPrivateApis } from '@wordpress/editor';
 import { useSelect, dispatch } from '@wordpress/data';
-import { useResizeObserver } from '@wordpress/compose';
 import {
 	useMemo,
 	useState,
@@ -35,6 +34,8 @@ import {
 	useEffect,
 } from '@wordpress/element';
 import { ENTER, SPACE } from '@wordpress/keycodes';
+import { uploadMedia } from '@wordpress/media-utils';
+import { store as coreStore } from '@wordpress/core-data';
 
 /**
  * Internal dependencies
@@ -49,8 +50,11 @@ import {
 import { getExamples } from './examples';
 import { store as siteEditorStore } from '../../store';
 import { useSection } from '../sidebar-global-styles-wrapper';
-import { STYLE_BOOK_COLOR_GROUPS } from '../style-book/constants';
 import { GlobalStylesRenderer } from '../global-styles-renderer';
+import {
+	STYLE_BOOK_COLOR_GROUPS,
+	STYLE_BOOK_PREVIEW_CATEGORIES,
+} from '../style-book/constants';
 
 const {
 	ExperimentalBlockEditorProvider,
@@ -89,35 +93,24 @@ const scrollToSection = ( anchorId, iframe ) => {
 };
 
 /**
- * Parses a Block Editor navigation path to extract the block name and
- * build a style book navigation path. The object can be extended to include a category,
- * representing a style book tab/section.
+ * Parses a Block Editor navigation path to build a style book navigation path.
+ * The object can be extended to include a category, representing a style book tab/section.
  *
  * @param {string} path An internal Block Editor navigation path.
  * @return {null|{block: string}} An object containing the example to navigate to.
  */
 const getStyleBookNavigationFromPath = ( path ) => {
 	if ( path && typeof path === 'string' ) {
-		if ( path === '/' ) {
+		if (
+			path === '/' ||
+			path.startsWith( '/typography' ) ||
+			path.startsWith( '/colors' ) ||
+			path.startsWith( '/blocks' )
+		) {
 			return {
 				top: true,
 			};
 		}
-
-		if ( path.startsWith( '/typography' ) ) {
-			return {
-				block: 'typography',
-			};
-		}
-		let block = path.includes( '/blocks/' )
-			? decodeURIComponent( path.split( '/blocks/' )[ 1 ] )
-			: null;
-		// Default to theme-colors if the path ends with /colors.
-		block = path.endsWith( '/colors' ) ? 'theme-colors' : block;
-
-		return {
-			block,
-		};
 	}
 	return null;
 };
@@ -233,7 +226,6 @@ function StyleBook( {
 	userConfig = {},
 	path = '',
 } ) {
-	const [ resizeObserver, sizes ] = useResizeObserver();
 	const [ textColor ] = useGlobalStyle( 'color.text' );
 	const [ backgroundColor ] = useGlobalStyle( 'color.background' );
 	const colors = useMultiOriginPalettes();
@@ -288,7 +280,6 @@ function StyleBook( {
 		>
 			<div
 				className={ clsx( 'edit-site-style-book', {
-					'is-wide': sizes.width > 600,
 					'is-button': !! onClick,
 				} ) }
 				style={ {
@@ -296,7 +287,6 @@ function StyleBook( {
 					background: backgroundColor,
 				} }
 			>
-				{ resizeObserver }
 				{ showTabs ? (
 					<Tabs>
 						<div className="edit-site-style-book__tablist-container">
@@ -311,34 +301,46 @@ function StyleBook( {
 								) ) }
 							</Tabs.TabList>
 						</div>
-						{ tabs.map( ( tab ) => (
-							<Tabs.TabPanel
-								key={ tab.slug }
-								tabId={ tab.slug }
-								focusable={ false }
-								className="edit-site-style-book__tabpanel"
-							>
-								<StyleBookBody
-									category={ tab.slug }
-									examples={ examples }
-									isSelected={ isSelected }
-									onSelect={ onSelect }
-									settings={ settings }
-									sizes={ sizes }
-									title={ tab.title }
-									goTo={ goTo }
-								/>
-							</Tabs.TabPanel>
-						) ) }
+						{ tabs.map( ( tab ) => {
+							const categoryDefinition = tab.slug
+								? getTopLevelStyleBookCategories().find(
+										( _category ) =>
+											_category.slug === tab.slug
+								  )
+								: null;
+							const filteredExamples = categoryDefinition
+								? getExamplesByCategory(
+										categoryDefinition,
+										examples
+								  )
+								: { examples };
+							return (
+								<Tabs.TabPanel
+									key={ tab.slug }
+									tabId={ tab.slug }
+									focusable={ false }
+									className="edit-site-style-book__tabpanel"
+								>
+									<StyleBookBody
+										category={ tab.slug }
+										examples={ filteredExamples }
+										isSelected={ isSelected }
+										onSelect={ onSelect }
+										settings={ settings }
+										title={ tab.title }
+										goTo={ goTo }
+									/>
+								</Tabs.TabPanel>
+							);
+						} ) }
 					</Tabs>
 				) : (
 					<StyleBookBody
-						examples={ examplesForSinglePageUse }
+						examples={ { examples: examplesForSinglePageUse } }
 						isSelected={ isSelected }
 						onClick={ onClick }
 						onSelect={ onSelect }
 						settings={ settings }
-						sizes={ sizes }
 						goTo={ goTo }
 					/>
 				) }
@@ -361,10 +363,22 @@ export const StyleBookPreview = ( { userConfig = {}, isStatic = false } ) => {
 		[]
 	);
 
+	const canUserUploadMedia = useSelect(
+		( select ) =>
+			select( coreStore ).canUser( 'create', {
+				kind: 'root',
+				name: 'media',
+			} ),
+		[]
+	);
+
 	// Update block editor settings because useMultipleOriginColorsAndGradients fetch colours from there.
 	useEffect( () => {
-		dispatch( blockEditorStore ).updateSettings( siteEditorSettings );
-	}, [ siteEditorSettings ] );
+		dispatch( blockEditorStore ).updateSettings( {
+			...siteEditorSettings,
+			mediaUpload: canUserUploadMedia ? uploadMedia : undefined,
+		} );
+	}, [ siteEditorSettings, canUserUploadMedia ] );
 
 	const [ section, onChangeSection ] = useSection();
 
@@ -400,10 +414,47 @@ export const StyleBookPreview = ( { userConfig = {}, isStatic = false } ) => {
 		onChangeSection( `/blocks/${ encodeURIComponent( blockName ) }` );
 	};
 
-	const [ resizeObserver, sizes ] = useResizeObserver();
 	const colors = useMultiOriginPalettes();
 	const examples = getExamples( colors );
 	const examplesForSinglePageUse = getExamplesForSinglePageUse( examples );
+
+	let previewCategory = null;
+	if ( section.includes( '/colors' ) ) {
+		previewCategory = 'colors';
+	} else if ( section.includes( '/typography' ) ) {
+		previewCategory = 'text';
+	} else if ( section.includes( '/blocks' ) ) {
+		previewCategory = 'blocks';
+		const blockName =
+			decodeURIComponent( section ).split( '/blocks/' )[ 1 ];
+		if (
+			blockName &&
+			examples.find( ( example ) => example.name === blockName )
+		) {
+			previewCategory = blockName;
+		}
+	} else if ( ! isStatic ) {
+		previewCategory = 'overview';
+	}
+	const categoryDefinition = STYLE_BOOK_PREVIEW_CATEGORIES.find(
+		( category ) => category.slug === previewCategory
+	);
+
+	// If there's no category definition there may be a single block.
+	const filteredExamples = categoryDefinition
+		? getExamplesByCategory( categoryDefinition, examples )
+		: {
+				examples: [
+					examples.find(
+						( example ) => example.name === previewCategory
+					),
+				],
+		  };
+
+	// If there's no preview category, show all examples.
+	const displayedExamples = previewCategory
+		? filteredExamples
+		: { examples: examplesForSinglePageUse };
 
 	const { base: baseConfig } = useContext( GlobalStylesContext );
 	const goTo = getStyleBookNavigationFromPath( section );
@@ -431,14 +482,12 @@ export const StyleBookPreview = ( { userConfig = {}, isStatic = false } ) => {
 
 	return (
 		<div className="edit-site-style-book">
-			{ resizeObserver }
 			<BlockEditorProvider settings={ settings }>
 				<GlobalStylesRenderer disableRootPadding />
 				<StyleBookBody
-					examples={ examplesForSinglePageUse }
+					examples={ displayedExamples }
 					settings={ settings }
 					goTo={ goTo }
-					sizes={ sizes }
 					isSelected={ ! isStatic ? isSelected : null }
 					onSelect={ ! isStatic ? onSelect : null }
 				/>
@@ -448,13 +497,11 @@ export const StyleBookPreview = ( { userConfig = {}, isStatic = false } ) => {
 };
 
 export const StyleBookBody = ( {
-	category,
 	examples,
 	isSelected,
 	onClick,
 	onSelect,
 	settings,
-	sizes,
 	title,
 	goTo,
 } ) => {
@@ -494,13 +541,6 @@ export const StyleBookBody = ( {
 		if ( hasIframeLoaded && iframeRef?.current ) {
 			if ( goTo?.top ) {
 				scrollToSection( 'top', iframeRef?.current );
-				return;
-			}
-			if ( goTo?.block ) {
-				scrollToSection(
-					`example-${ goTo?.block }`,
-					iframeRef?.current
-				);
 			}
 		}
 	}, [ iframeRef?.current, goTo, scrollToSection, hasIframeLoaded ] );
@@ -524,11 +564,8 @@ export const StyleBookBody = ( {
 					'body { cursor: pointer; } body * { pointer-events: none; }' }
 			</style>
 			<Examples
-				className={ clsx( 'edit-site-style-book__examples', {
-					'is-wide': sizes.width > 600,
-				} ) }
-				examples={ examples }
-				category={ category }
+				className="edit-site-style-book__examples"
+				filteredExamples={ examples }
 				label={
 					title
 						? sprintf(
@@ -540,24 +577,14 @@ export const StyleBookBody = ( {
 				}
 				isSelected={ isSelected }
 				onSelect={ onSelect }
-				key={ category }
+				key={ title }
 			/>
 		</Iframe>
 	);
 };
 
 const Examples = memo(
-	( { className, examples, category, label, isSelected, onSelect } ) => {
-		const categoryDefinition = category
-			? getTopLevelStyleBookCategories().find(
-					( _category ) => _category.slug === category
-			  )
-			: null;
-
-		const filteredExamples = categoryDefinition
-			? getExamplesByCategory( categoryDefinition, examples )
-			: { examples };
-
+	( { className, filteredExamples, label, isSelected, onSelect } ) => {
 		return (
 			<Composite
 				orientation="vertical"

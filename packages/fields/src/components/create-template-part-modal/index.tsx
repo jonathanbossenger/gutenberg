@@ -11,6 +11,7 @@ import {
 	__experimentalVStack as VStack,
 } from '@wordpress/components';
 import { useInstanceId } from '@wordpress/compose';
+import type { TemplatePartArea } from '@wordpress/core-data';
 import { store as coreStore } from '@wordpress/core-data';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { useState } from '@wordpress/element';
@@ -52,13 +53,6 @@ type CreateTemplatePartModalContentsProps = {
 	defaultTitle?: string;
 };
 
-type TemplatePartArea = {
-	area: string;
-	label: string;
-	icon: string;
-	description: string;
-};
-
 /**
  * A React component that renders a modal for creating a template part. The modal displays a title and the contents for creating the template part.
  * This component should not live in this package, it should be moved to a dedicated package responsible for managing template.
@@ -73,7 +67,6 @@ export default function CreateTemplatePartModal( {
 } & CreateTemplatePartModalContentsProps ) {
 	const defaultModalTitle = useSelect(
 		( select ) =>
-			// @ts-expect-error getPostType is not typed with 'wp_template_part' as argument.
 			select( coreStore ).getPostType( 'wp_template_part' )?.labels
 				?.add_new_item,
 		[]
@@ -135,10 +128,7 @@ export function CreateTemplatePartModalContents( {
 
 	const defaultTemplatePartAreas = useSelect(
 		( select ) =>
-			// @ts-expect-error getEntityRecord is not typed with unstableBase as argument.
-			select( coreStore ).getEntityRecord< {
-				default_template_part_areas: Array< TemplatePartArea >;
-			} >( 'root', '__unstableBase' )?.default_template_part_areas,
+			select( coreStore ).getCurrentTheme()?.default_template_part_areas,
 		[]
 	);
 
@@ -208,59 +198,61 @@ export function CreateTemplatePartModalContents( {
 						{ __( 'Area' ) }
 					</BaseControl.VisualLabel>
 					<div className="fields-create-template-part-modal__area-radio-group">
-						{ ( defaultTemplatePartAreas ?? [] ).map( ( item ) => {
-							const icon = getTemplatePartIcon( item.icon );
-							return (
-								<div
-									key={ item.area }
-									className="fields-create-template-part-modal__area-radio-wrapper"
-								>
-									<input
-										type="radio"
-										id={ getAreaRadioId(
-											item.area,
-											instanceId
-										) }
-										name={ `fields-create-template-part-modal__area-${ instanceId }` }
-										value={ item.area }
-										checked={ area === item.area }
-										onChange={ () => {
-											setArea( item.area );
-										} }
-										aria-describedby={ getAreaRadioDescriptionId(
-											item.area,
-											instanceId
-										) }
-									/>
-									<Icon
-										icon={ icon }
-										className="fields-create-template-part-modal__area-radio-icon"
-									/>
-									<label
-										htmlFor={ getAreaRadioId(
-											item.area,
-											instanceId
-										) }
-										className="fields-create-template-part-modal__area-radio-label"
+						{ ( defaultTemplatePartAreas ?? [] ).map(
+							( item: TemplatePartArea ) => {
+								const icon = getTemplatePartIcon( item.icon );
+								return (
+									<div
+										key={ item.area }
+										className="fields-create-template-part-modal__area-radio-wrapper"
 									>
-										{ item.label }
-									</label>
-									<Icon
-										icon={ check }
-										className="fields-create-template-part-modal__area-radio-checkmark"
-									/>
-									<p
-										className="fields-create-template-part-modal__area-radio-description"
-										id={ getAreaRadioDescriptionId(
-											item.area,
-											instanceId
-										) }
-									>
-										{ item.description }
-									</p>
-								</div>
-							);
-						} ) }
+										<input
+											type="radio"
+											id={ getAreaRadioId(
+												item.area,
+												instanceId
+											) }
+											name={ `fields-create-template-part-modal__area-${ instanceId }` }
+											value={ item.area }
+											checked={ area === item.area }
+											onChange={ () => {
+												setArea( item.area );
+											} }
+											aria-describedby={ getAreaRadioDescriptionId(
+												item.area,
+												instanceId
+											) }
+										/>
+										<Icon
+											icon={ icon }
+											className="fields-create-template-part-modal__area-radio-icon"
+										/>
+										<label
+											htmlFor={ getAreaRadioId(
+												item.area,
+												instanceId
+											) }
+											className="fields-create-template-part-modal__area-radio-label"
+										>
+											{ item.label }
+										</label>
+										<Icon
+											icon={ check }
+											className="fields-create-template-part-modal__area-radio-checkmark"
+										/>
+										<p
+											className="fields-create-template-part-modal__area-radio-description"
+											id={ getAreaRadioDescriptionId(
+												item.area,
+												instanceId
+											) }
+										>
+											{ item.description }
+										</p>
+									</div>
+								);
+							}
+						) }
 					</div>
 				</fieldset>
 				<HStack justify="right">

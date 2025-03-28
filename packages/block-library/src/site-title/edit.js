@@ -25,6 +25,11 @@ import {
 import { createBlock, getDefaultBlockName } from '@wordpress/blocks';
 import { decodeEntities } from '@wordpress/html-entities';
 
+/**
+ * Internal dependencies
+ */
+import { useToolsPanelDropdownMenuProps } from '../utils/hooks';
+
 export default function SiteTitleEdit( {
 	attributes,
 	setAttributes,
@@ -47,10 +52,11 @@ export default function SiteTitleEdit( {
 		};
 	}, [] );
 	const { editEntityRecord } = useDispatch( coreStore );
+	const dropdownMenuProps = useToolsPanelDropdownMenuProps();
 
 	function setTitle( newTitle ) {
 		editEntityRecord( 'root', 'site', undefined, {
-			title: newTitle,
+			title: newTitle.trim(),
 		} );
 	}
 
@@ -117,15 +123,16 @@ export default function SiteTitleEdit( {
 					label={ __( 'Settings' ) }
 					resetAll={ () => {
 						setAttributes( {
-							isLink: false,
+							isLink: true,
 							linkTarget: '_self',
 						} );
 					} }
+					dropdownMenuProps={ dropdownMenuProps }
 				>
 					<ToolsPanelItem
-						hasValue={ () => isLink !== false }
+						hasValue={ () => ! isLink }
 						label={ __( 'Make title link to home' ) }
-						onDeselect={ () => setAttributes( { isLink: false } ) }
+						onDeselect={ () => setAttributes( { isLink: true } ) }
 						isShownByDefault
 					>
 						<ToggleControl

@@ -44,6 +44,7 @@ import {
 	getColors,
 	getNavigationChildBlockProps,
 } from '../navigation/edit/utils';
+import { useToolsPanelDropdownMenuProps } from '../utils/hooks';
 
 const ALLOWED_BLOCKS = [
 	'core/navigation-link',
@@ -153,6 +154,7 @@ export default function NavigationSubmenuEdit( {
 	const isDraggingWithin = useIsDraggingWithin( listItemRef );
 	const itemLabelPlaceholder = __( 'Add text…' );
 	const ref = useRef();
+	const dropdownMenuProps = useToolsPanelDropdownMenuProps();
 
 	const {
 		parentCount,
@@ -274,7 +276,7 @@ export default function NavigationSubmenuEdit( {
 			// as it shares the CMD+K shortcut.
 			// See https://github.com/WordPress/gutenberg/pull/59845.
 			event.preventDefault();
-			// If we don't stop propogation, this event bubbles up to the parent submenu item
+			// If we don't stop propagation, this event bubbles up to the parent submenu item
 			event.stopPropagation();
 			setIsLinkOpen( true );
 			setOpenedBy( ref.current );
@@ -394,6 +396,7 @@ export default function NavigationSubmenuEdit( {
 							rel: '',
 						} );
 					} }
+					dropdownMenuProps={ dropdownMenuProps }
 				>
 					<ToolsPanelItem
 						label={ __( 'Text' ) }
@@ -428,6 +431,7 @@ export default function NavigationSubmenuEdit( {
 							} }
 							label={ __( 'Link' ) }
 							autoComplete="off"
+							type="url"
 						/>
 					</ToolsPanelItem>
 
