@@ -39,8 +39,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 {{#wpScripts}}
 /**
- * Registers the block using a `blocks-manifest.php` file, which improves performance of block type registration.
- * Behind the scenes, it registers also all assets so they can be enqueued
+ * Registers the block using a `blocks-manifest.php` file, which improves the performance of block type registration.
+ * Behind the scenes, it also registers all assets so they can be enqueued
  * through the block editor in the corresponding context.
  *
  * @see https://make.wordpress.org/core/2025/03/13/more-efficient-block-type-registration-in-6-8/
@@ -55,7 +55,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @see https://developer.wordpress.org/reference/functions/register_block_type/
  */
- {{/wpScripts}}
+{{/wpScripts}}
 function {{namespaceSnakeCase}}_{{slugSnakeCase}}_block_init() {
 {{#wpScripts}}
 	/**
