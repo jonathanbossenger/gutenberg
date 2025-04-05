@@ -9,23 +9,11 @@ import clsx from 'clsx';
 import { DropdownMenu, MenuGroup, MenuItem } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { moreVertical } from '@wordpress/icons';
-import { useEffect, useRef } from '@wordpress/element';
 
 function Warning( { className, actions, children, secondaryActions } ) {
-	const alertRef = useRef();
-
-	useEffect( () => {
-		alertRef.current?.focus();
-	}, [] );
-
 	return (
 		<div style={ { display: 'contents', all: 'initial' } }>
-			<div
-				className={ clsx( className, 'block-editor-warning' ) }
-				tabIndex="0"
-				ref={ alertRef }
-				role="alert"
-			>
+			<div className={ clsx( className, 'block-editor-warning' ) }>
 				<div className="block-editor-warning__contents">
 					<p className="block-editor-warning__message">
 						{ children }

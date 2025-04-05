@@ -135,6 +135,22 @@ const addListItem = ( newListItem ) => {
 
 Why do this? In JavaScript, arrays and objects are passed by reference, so this practice ensures changes won't affect other code that might hold references to the same data. Furthermore, the Gutenberg project follows the philosophy of the Redux library that [state should be immutable](https://redux.js.org/faq/immutable-data#what-are-the-benefits-of-immutability)—data should not be changed directly, but instead a new version of the data created containing the changes.
 
+The `setAttribute` also supports an updater function as an argument. It must be a pure function, which takes current attributes as its only argument and returns updated attributes. This method is helpful when you want to update an value based on a previous state or when working with objects and arrays.
+
+```js
+// Toggle a setting when the user clicks the button.
+const toggleSetting = () =>
+	setAttributes( ( currentAttr ) => ( {
+		mySetting: ! currentAttr.mySetting,
+	} ) );
+
+// Add item to the list.
+const addListItem = ( newListItem ) =>
+	setAttributes( ( currentAttr ) => ( {
+		list: [ ...currentAttr.list, newListItem ],
+	} ) );
+```
+
 ## Save
 
 The `save` function defines the way in which the different attributes should be combined into the final markup, which is then serialized into `post_content`.
@@ -183,8 +199,33 @@ save: ( { attributes } ) => {
 ```
 
 
-
 When saving your block, you want to save the attributes in the same format specified by the attribute source definition. If no attribute source is specified, the attribute will be saved to the block's comment delimiter. See the [Block Attributes documentation](/docs/reference-guides/block-api/block-attributes.md) for more details.
+
+### innerBlocks
+
+There is a second property in the props passed to the `save` function, `innerBlocks`. This property is typically used for internal operations, and there are very few scenarios where you would need to use it.
+
+`innerBlocks`, when initialized, is an array containing object representations of nested blocks. In those rare cases where you might use this property,
+it can help you adjust how a block is rendered. For example, you could render a block differently based on the number of nested blocks or if a specific block type is present..
+
+
+```jsx
+save: ( { attributes, innerBlocks } ) => {
+	const { className, ...rest } = useBlockProps.save();
+
+	// innerBlocks could also be an object - react element during initialization
+	const numberOfInnerBlocks = innerBlocks?.length;
+	if ( numberOfInnerBlocks > 1 ) {
+		className = className + ( className ? ' ' : '' ) + 'more-than-one';
+	};
+	const blockProps =  { ...rest, className };
+
+	return <div { ...blockProps }>{ attributes.content }</div>;
+};
+```
+
+
+Here, an additional class is added to the block if number of inner blocks is greater than one, allowing for different styling of the block.
 
 ## Examples
 

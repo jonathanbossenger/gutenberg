@@ -87,7 +87,6 @@ const DefaultOptions = () => {
 						onClick={ () => {
 							setCurrentColor?.( color );
 						} }
-						aria-label={ name }
 					/>
 				);
 			} ) }
@@ -132,7 +131,7 @@ WithLoopingDisabled.parameters = {
 	docs: {
 		source: {
 			code: `<CircularOptionPicker
-  aria-label="${ WithLoopingDisabled.args[ 'aria-label' ] }"
+  'aria-label': 'Circular Option Picker',
   loop={false}
   options={<DefaultOptions />}
 />`,

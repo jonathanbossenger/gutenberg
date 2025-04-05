@@ -23,6 +23,7 @@ import QueryInspectorControls from './inspector-controls';
 import EnhancedPaginationModal from './enhanced-pagination-modal';
 import { getQueryContextFromTemplate } from '../utils';
 import QueryToolbar from './query-toolbar';
+import { htmlElementMessages } from '../../utils/messages';
 
 const DEFAULTS_POSTS_PER_PAGE = 3;
 
@@ -85,8 +86,11 @@ export default function QueryContent( {
 	// because updates are batched after the render and changes in different query properties
 	// would cause to override previous wanted changes.
 	const updateQuery = useCallback(
-		( newQuery ) => setAttributes( { query: { ...query, ...newQuery } } ),
-		[ query, setAttributes ]
+		( newQuery ) =>
+			setAttributes( ( prevAttributes ) => ( {
+				query: { ...prevAttributes.query, ...newQuery },
+			} ) ),
+		[ setAttributes ]
 	);
 	useEffect( () => {
 		const newQuery = {};
@@ -132,17 +136,6 @@ export default function QueryContent( {
 		setAttributes( {
 			displayLayout: { ...displayLayout, ...newDisplayLayout },
 		} );
-	const htmlElementMessages = {
-		main: __(
-			'The <main> element should be used for the primary content of your document only.'
-		),
-		section: __(
-			"The <section> element should represent a standalone portion of the document that can't be better represented by another element."
-		),
-		aside: __(
-			"The <aside> element should represent a portion of a document whose content is only indirectly related to the document's main content."
-		),
-	};
 
 	return (
 		<>

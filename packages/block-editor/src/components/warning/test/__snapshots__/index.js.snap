@@ -7,8 +7,6 @@ exports[`Warning should match snapshot 1`] = `
   >
     <div
       class="block-editor-warning"
-      role="alert"
-      tabindex="0"
     >
       <div
         class="block-editor-warning__contents"

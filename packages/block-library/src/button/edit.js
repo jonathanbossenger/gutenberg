@@ -14,8 +14,14 @@ import { useToolsPanelDropdownMenuProps } from '../utils/hooks';
 /**
  * WordPress dependencies
  */
-import { __ } from '@wordpress/i18n';
-import { useEffect, useState, useRef, useMemo } from '@wordpress/element';
+import { __, sprintf } from '@wordpress/i18n';
+import {
+	useEffect,
+	useState,
+	useRef,
+	useMemo,
+	createInterpolateElement,
+} from '@wordpress/element';
 import {
 	TextControl,
 	ToolbarButton,
@@ -39,6 +45,8 @@ import {
 	__experimentalGetElementClassName,
 	store as blockEditorStore,
 	useBlockEditingMode,
+	getTypographyClassesAndStyles as useTypographyProps,
+	useSettings,
 } from '@wordpress/block-editor';
 import { displayShortcut, isKeyboardEvent, ENTER } from '@wordpress/keycodes';
 import { link, linkOff } from '@wordpress/icons';
@@ -125,14 +133,14 @@ function WidthPanel( { selectedWidth, setAttributes } ) {
 			dropdownMenuProps={ dropdownMenuProps }
 		>
 			<ToolsPanelItem
-				label={ __( 'Button width' ) }
+				label={ __( 'Width' ) }
 				isShownByDefault
 				hasValue={ () => !! selectedWidth }
 				onDeselect={ () => setAttributes( { width: undefined } ) }
 				__nextHasNoMarginBottom
 			>
 				<ToggleGroupControl
-					label={ __( 'Button width' ) }
+					label={ __( 'Width' ) }
 					value={ selectedWidth }
 					onChange={ ( newWidth ) =>
 						setAttributes( { width: newWidth } )
@@ -146,7 +154,11 @@ function WidthPanel( { selectedWidth, setAttributes } ) {
 							<ToggleGroupControlOption
 								key={ widthValue }
 								value={ widthValue }
-								label={ `${ widthValue }%` }
+								label={ sprintf(
+									/* translators: Percentage value. */
+									__( '%d%%' ),
+									widthValue
+								) }
 							/>
 						);
 					} ) }
@@ -213,6 +225,63 @@ function ButtonEdit( props ) {
 	const nofollow = !! rel?.includes( NOFOLLOW_REL );
 	const isLinkTag = 'a' === TagName;
 
+	const {
+		createPageEntity,
+		userCanCreatePages,
+		lockUrlControls = false,
+	} = useSelect(
+		( select ) => {
+			if ( ! isSelected ) {
+				return {};
+			}
+
+			const _settings = select( blockEditorStore ).getSettings();
+
+			const blockBindingsSource = getBlockBindingsSource(
+				metadata?.bindings?.url?.source
+			);
+
+			return {
+				createPageEntity: _settings.__experimentalCreatePageEntity,
+				userCanCreatePages: _settings.__experimentalUserCanCreatePages,
+				lockUrlControls:
+					!! metadata?.bindings?.url &&
+					! blockBindingsSource?.canUserEditValue?.( {
+						select,
+						context,
+						args: metadata?.bindings?.url?.args,
+					} ),
+			};
+		},
+		[ context, isSelected, metadata?.bindings?.url ]
+	);
+
+	async function handleCreate( pageTitle ) {
+		const page = await createPageEntity( {
+			title: pageTitle,
+			status: 'draft',
+		} );
+
+		return {
+			id: page.id,
+			type: page.type,
+			title: page.title.rendered,
+			url: page.link,
+			kind: 'post-type',
+		};
+	}
+
+	function createButtonText( searchTerm ) {
+		return createInterpolateElement(
+			sprintf(
+				/* translators: %s: search term. */
+				__( 'Create page: <mark>%s</mark>' ),
+				searchTerm
+			),
+			{ mark: <mark /> }
+		);
+	}
+
 	function startEditing( event ) {
 		event.preventDefault();
 		setIsEditingURL( true );
@@ -243,28 +312,18 @@ function ButtonEdit( props ) {
 	const useEnterRef = useEnter( { content: text, clientId } );
 	const mergedRef = useMergeRefs( [ useEnterRef, richTextRef ] );
 
-	const { lockUrlControls = false } = useSelect(
-		( select ) => {
-			if ( ! isSelected ) {
-				return {};
-			}
-
-			const blockBindingsSource = getBlockBindingsSource(
-				metadata?.bindings?.url?.source
-			);
-
-			return {
-				lockUrlControls:
-					!! metadata?.bindings?.url &&
-					! blockBindingsSource?.canUserEditValue?.( {
-						select,
-						context,
-						args: metadata?.bindings?.url?.args,
-					} ),
-			};
-		},
-		[ context, isSelected, metadata?.bindings?.url ]
+	const [ fluidTypographySettings, layout ] = useSettings(
+		'typography.fluid',
+		'layout'
 	);
+	const typographyProps = useTypographyProps( attributes, {
+		typography: {
+			fluid: fluidTypographySettings,
+		},
+		layout: {
+			wideSize: layout?.wideSize,
+		},
+	} );
 
 	return (
 		<>
@@ -273,7 +332,6 @@ function ButtonEdit( props ) {
 				className={ clsx( blockProps.className, {
 					[ `has-custom-width wp-block-button__width-${ width }` ]:
 						width,
-					[ `has-custom-font-size` ]: blockProps.style.fontSize,
 				} ) }
 			>
 				<RichText
@@ -292,11 +350,14 @@ function ButtonEdit( props ) {
 						'wp-block-button__link',
 						colorProps.className,
 						borderProps.className,
+						typographyProps.className,
 						{
 							[ `has-text-align-${ textAlign }` ]: textAlign,
 							// For backwards compatibility add style that isn't
 							// provided via block support.
 							'no-border-radius': style?.border?.radius === 0,
+							[ `has-custom-font-size` ]:
+								blockProps.style.fontSize,
 						},
 						__experimentalGetElementClassName( 'button' )
 					) }
@@ -305,6 +366,8 @@ function ButtonEdit( props ) {
 						...colorProps.style,
 						...spacingProps.style,
 						...shadowProps.style,
+						...typographyProps.style,
+						writingMode: undefined,
 					} }
 					onReplace={ onReplace }
 					onMerge={ mergeBlocks }
@@ -377,6 +440,11 @@ function ButtonEdit( props ) {
 							} }
 							forceIsEditingLink={ isEditingURL }
 							settings={ LINK_SETTINGS }
+							createSuggestion={
+								createPageEntity && handleCreate
+							}
+							withCreateSuggestion={ userCanCreatePages }
+							createSuggestionButtonText={ createButtonText }
 						/>
 					</Popover>
 				) }

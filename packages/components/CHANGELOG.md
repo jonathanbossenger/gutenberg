@@ -2,9 +2,106 @@
 
 ## Unreleased
 
+### Internal
+
+-   Update `gradient-parser` to version `1.0.2` ([#69783](https://github.com/WordPress/gutenberg/pull/69783)).
+
+
+### Bug Fixes
+
+-   `Button`: Fix tertiary variant displaying incorrect text color in pressed and hover states ([#68542](https://github.com/WordPress/gutenberg/pull/68542)).
+
+### Enhancement
+
+-   `FormTokenField`: Add theming support ([#69638](https://github.com/WordPress/gutenberg/pull/69638)).
+-   `ComboboxControl`: Add theming support ([#69638](https://github.com/WordPress/gutenberg/pull/69638)).
+
+## 29.7.0 (2025-03-27)
+
+### Bug Fixes
+
+-   `useAutocomplete`: Fix autocomple UI flicker when deleting trigger prefix ([#69562](https://github.com/WordPress/gutenberg/pull/69562)).
+-   `FormTokenField`: Use `color-mix` for disabled option selection background ([#69621](https://github.com/WordPress/gutenberg/pull/69621)).
+-   `CustomSelectControl`: Fix check icon color to adapt with dark theme ([#69626](https://github.com/WordPress/gutenberg/pull/69626)).
+-   `Autocomplete`: Extracts `getNodeText` function into a separate file and adds unit tests ([#69135](https://github.com/WordPress/gutenberg/pull/69135)).
+-   `NumberControl`: update stepping to match HTML number input stepping ([#34566](https://github.com/WordPress/gutenberg/pull/34566)).
+
+## 29.6.0 (2025-03-13)
+
+### Enhancement
+
+-   `QueryControls`: Add menu_order sorting option if supported by the post type. ([#68781](https://github.com/WordPress/gutenberg/pull/68781)).
+
+### Internal
+
+-   `NumberControl`: Fixed className test to properly verify className application. ([#69540](https://github.com/WordPress/gutenberg/pull/69540)).
+
+### Bug Fixes
+
+-   `Button`: Remove fixed width from small and compact buttons with icons ([#69378](https://github.com/WordPress/gutenberg/pull/69378)).
+
+## 29.5.0 (2025-02-28)
+
+### Documentation
+
+-   `FontSizePicker`: Fix Storybook units control type to use `inline-check` and improve documentation clarifying unitless mode in `README.md` ([#68936](https://github.com/WordPress/gutenberg/pull/68936)).
+
+### Bug Fixes
+
+-   `TextControl`: Ensures email and url inputs have consistent LTR alignment in RTL languages ([#68561](https://github.com/WordPress/gutenberg/pull/68561)).
+-   `InputControl`: Ensure consistent placeholder color ([#69334](https://github.com/WordPress/gutenberg/pull/69334)).
+
+### Enhancement
+
+-   `TextareaControl`: Fix Firefox placeholder text opacity override ([#69312](https://github.com/WordPress/gutenberg/pull/69312)).
+-   `BorderControlDropdown`, `BorderControl`: Reset button is always visible. ([#69066](https://github.com/WordPress/gutenberg/pull/69066)).
+
+### Internal
+
+-   `NumberControl`: Fix invalid HTML attributes for infinite bounds ([#69033](https://github.com/WordPress/gutenberg/pull/69033)).
+
+### Bug Fixes
+
+-   `FontSizePicker`: Remove non translatable additional info from font size picker visual label and improve labeling. ([#69011](https://github.com/WordPress/gutenberg/pull/69011)).
+-   `Notice`: Fix text contrast for dark mode ([#69226](https://github.com/WordPress/gutenberg/pull/69226)).
+
+## 29.4.0 (2025-02-12)
+
+-   `FontSizePicker`: Remove Custom option from dropdown to prevent unexpected context changes during keyboard navigation ([#69038](https://github.com/WordPress/gutenberg/pull/69038)).
+
+-   `ComboboxControl`: Add an `isLoading` prop to show a loading spinner ([#68990](https://github.com/WordPress/gutenberg/pull/68990))
+
+## 29.3.0 (2025-01-29)
+
+### Enhancements
+
+-   `BorderBoxControl`, `BoxControl`: Remove `Tooltip` component from linked button ([#68498](https://github.com/WordPress/gutenberg/pull/68498)).
+
+### Internal
+
+-   `BoxControl`: Add runtime check for presets and presetKey ([#68385](https://github.com/WordPress/gutenberg/pull/68385)).
+
+## 29.2.0 (2025-01-15)
+
+### Internal
+
+-   `Components`: Standardize reduced motion handling using media queries ([#68421](https://github.com/WordPress/gutenberg/pull/68421)).
+
+### Bug Fixes
+
+-   `CircularOptionPicker`, `ColorPalette`: Fix usage of tooltip in the Circular option picker. ([#68602](https://github.com/WordPress/gutenberg/pull/68602)).
+-   `InputControl`: Ensures email and url inputs have consistent LTR alignment in RTL languages ([#68188](https://github.com/WordPress/gutenberg/pull/68188)).
+
+## 29.1.0 (2025-01-02)
+
 ### Enhancements
 
 -   `BoxControl`: Add presets support ([#67688](https://github.com/WordPress/gutenberg/pull/67688)).
+-   `Navigation`: Upsize back buttons ([#68157](https://github.com/WordPress/gutenberg/pull/68157)).
+-   `Heading`: Fix text contrast for dark mode ([#68349](https://github.com/WordPress/gutenberg/pull/68349)).
+-   `Text`: Fix text contrast for dark mode ([#68349](https://github.com/WordPress/gutenberg/pull/68349)).
+-   `Heading`: Revert text contrast fix for dark mode with optimizeReadabilityFor ([#68472](https://github.com/WordPress/gutenberg/pull/68472)).
+-   `Text`: Revert text contrast fix for dark mode with optimizeReadabilityFor ([#68472](https://github.com/WordPress/gutenberg/pull/68472)).
 
 ### Deprecations
 
@@ -13,19 +110,25 @@
 -   `InputControl`: Deprecate 36px default size ([#66897](https://github.com/WordPress/gutenberg/pull/66897)).
 -   `RadioGroup`: Log deprecation warning ([#68067](https://github.com/WordPress/gutenberg/pull/68067)).
 -   Soft deprecate `ButtonGroup` component. Use `ToggleGroupControl` instead ([#65429](https://github.com/WordPress/gutenberg/pull/65429)).
+-   `Navigation`: Log deprecation warning for removal in WP 7.1. Use `Navigator` instead ([#68158](https://github.com/WordPress/gutenberg/pull/68158)).
 
 ### Bug Fixes
 
 -   `BoxControl`: Better respect for the `min` prop in the Range Slider ([#67819](https://github.com/WordPress/gutenberg/pull/67819)).
+-   `FontSizePicker`: Add `display:contents` rule to fix overflowing text in the custom size select. ([#68280](https://github.com/WordPress/gutenberg/pull/68280)).
+-   `BoxControl`: Fix aria-valuetext value ([#68362](https://github.com/WordPress/gutenberg/pull/68362)).
 
 ### Experimental
 
 -   Add new `Badge` component ([#66555](https://github.com/WordPress/gutenberg/pull/66555)).
 -   `Menu`: refactor to more granular sub-components ([#67422](https://github.com/WordPress/gutenberg/pull/67422)).
+-   `Badge`: Support text truncation ([#68107](https://github.com/WordPress/gutenberg/pull/68107)).
 
 ### Internal
 
 -   `SlotFill`: rewrite the non-portal version to use `observableMap` ([#67400](https://github.com/WordPress/gutenberg/pull/67400)).
+-   `DatePicker`: Prepare day buttons for 40px default size ([#68156](https://github.com/WordPress/gutenberg/pull/68156)).
+-   `SlotFill`: register slots in a layout effect ([#68176](https://github.com/WordPress/gutenberg/pull/68176)).
 
 ## 29.0.0 (2024-12-11)
 
@@ -168,7 +271,7 @@
 
 -   `Tabs`: remove internal custom logic ([#66097](https://github.com/WordPress/gutenberg/pull/66097)).
 -   `Tabs`: add props to control active tab item ([#66223](https://github.com/WordPress/gutenberg/pull/66223)).
--   `Tabs`: restore vertical alignent for tabs content ([#66215](https://github.com/WordPress/gutenberg/pull/66215)).
+-   `Tabs`: restore vertical alignment for tabs content ([#66215](https://github.com/WordPress/gutenberg/pull/66215)).
 -   `Tabs`: fix indicator animation ([#66198](https://github.com/WordPress/gutenberg/pull/66198)).
 -   `Tabs`: update indicator more reactively ([#66207](https://github.com/WordPress/gutenberg/pull/66207)).
 -   `Tabs` and `TabPanel`: Fix arrow key navigation in RTL ([#66201](https://github.com/WordPress/gutenberg/pull/66201)).
@@ -504,7 +607,7 @@
 -   `Tabs`: Vertical Tabs should be 40px min height. ([#63446](https://github.com/WordPress/gutenberg/pull/63446)).
 -   `ColorPicker`: Use `minimal` variant for `SelectControl` ([#63676](https://github.com/WordPress/gutenberg/pull/63676)).
 -   `Tabs`: keep full opacity of focus ring and remove hover styles on disabled tabs ([#63754](https://github.com/WordPress/gutenberg/pull/63754)).
--   `Placeholder`: Remove unnecssary `placeholder-style` Sass mixin ([#63885](https://github.com/WordPress/gutenberg/pull/63885)).
+-   `Placeholder`: Remove unnecessary `placeholder-style` Sass mixin ([#63885](https://github.com/WordPress/gutenberg/pull/63885)).
 
 ### Documentation
 
@@ -1571,7 +1674,7 @@
 
 -   `TabPanel`: support manual tab activation ([#46004](https://github.com/WordPress/gutenberg/pull/46004)).
 -   `TabPanel`: support disabled prop for tab buttons ([#46471](https://github.com/WordPress/gutenberg/pull/46471)).
--   `BaseControl`: Add `useBaseControlProps` hook to help generate id-releated props ([#46170](https://github.com/WordPress/gutenberg/pull/46170)).
+-   `BaseControl`: Add `useBaseControlProps` hook to help generate id-related props ([#46170](https://github.com/WordPress/gutenberg/pull/46170)).
 
 ### Bug Fixes
 
@@ -1594,8 +1697,8 @@
 -   `Popover`: Prevent unnecessary paint caused by using outline ([#46201](https://github.com/WordPress/gutenberg/pull/46201)).
 -   `PaletteEdit`: Global styles: add onChange actions to color palette items [#45681](https://github.com/WordPress/gutenberg/pull/45681).
 -   Lighten the border color on control components ([#46252](https://github.com/WordPress/gutenberg/pull/46252)).
--   `Popover`: Prevent unnecessary paint when scrolling by using transform instead of top/left positionning ([#46187](https://github.com/WordPress/gutenberg/pull/46187)).
--   `CircularOptionPicker`: Prevent unecessary paint on hover ([#46197](https://github.com/WordPress/gutenberg/pull/46197)).
+-   `Popover`: Prevent unnecessary paint when scrolling by using transform instead of top/left positioning ([#46187](https://github.com/WordPress/gutenberg/pull/46187)).
+-   `CircularOptionPicker`: Prevent unnecessary paint on hover ([#46197](https://github.com/WordPress/gutenberg/pull/46197)).
 
 ### Experimental
 
@@ -2441,7 +2544,7 @@
 
 ### Bug Fixes
 
--   Improve accessibility and visibility in `ColorPallete` ([#36925](https://github.com/WordPress/gutenberg/pull/36925))
+-   Improve accessibility and visibility in `ColorPalette` ([#36925](https://github.com/WordPress/gutenberg/pull/36925))
 
 ## 19.1.3 (2021-12-06)
 

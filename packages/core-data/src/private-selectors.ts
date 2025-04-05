@@ -136,7 +136,7 @@ export const getHomePage = createRegistrySelector( ( select ) =>
 		() => {
 			const siteData = select( STORE_NAME ).getEntityRecord(
 				'root',
-				'site'
+				'__unstableBase'
 			) as SiteData | undefined;
 			if ( ! siteData ) {
 				return null;
@@ -156,7 +156,7 @@ export const getHomePage = createRegistrySelector( ( select ) =>
 			return { postType: 'wp_template', postId: frontPageTemplateId };
 		},
 		( state ) => [
-			getEntityRecord( state, 'root', 'site' ),
+			getEntityRecord( state, 'root', '__unstableBase' ),
 			getDefaultTemplateId( state, {
 				slug: 'front-page',
 			} ),
@@ -165,9 +165,10 @@ export const getHomePage = createRegistrySelector( ( select ) =>
 );
 
 export const getPostsPageId = createRegistrySelector( ( select ) => () => {
-	const siteData = select( STORE_NAME ).getEntityRecord( 'root', 'site' ) as
-		| SiteData
-		| undefined;
+	const siteData = select( STORE_NAME ).getEntityRecord(
+		'root',
+		'__unstableBase'
+	) as SiteData | undefined;
 	return siteData?.show_on_front === 'page'
 		? normalizePageId( siteData.page_for_posts )
 		: null;
