@@ -180,7 +180,7 @@ function NotesSidebar( { postId, mode } ) {
 					commentLastUpdated={ commentLastUpdated }
 				/>
 			</PluginSidebar>
-			{ showFloatingSidebar && (
+			{ isLargeViewport && (
 				<PluginSidebar
 					isPinnable={ false }
 					header={ false }
