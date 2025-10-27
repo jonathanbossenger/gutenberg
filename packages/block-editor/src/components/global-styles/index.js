@@ -1,5 +1,4 @@
 export { useSettingsForBlockElement } from './hooks';
-export { GlobalStylesContext } from './context';
 export {
 	default as TypographyPanel,
 	useHasTypographyPanel,
@@ -24,4 +23,3 @@ export {
 	default as BackgroundPanel,
 	useHasBackgroundPanel,
 } from './background-panel';
-export { areGlobalStyleConfigsEqual } from './utils';
