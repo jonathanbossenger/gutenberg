@@ -8,13 +8,12 @@
 /**
  * External dependencies
  */
-// @ts-expect-error: No types available
 import toposort from 'toposort';
 
 /**
  * Internal dependencies
  */
-import { getPackageInfo } from './lib/package-utils.mjs';
+import { getPackageInfo } from './package-utils.mjs';
 
 /**
  * Check if a package is a script or script module.

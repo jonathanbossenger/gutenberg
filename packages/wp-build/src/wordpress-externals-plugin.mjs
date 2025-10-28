@@ -3,11 +3,12 @@
  */
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { camelCase } from 'change-case';
 
 /**
  * Internal dependencies
  */
-import { getPackageInfo, kebabToCamelCase } from './package-utils.mjs';
+import { getPackageInfo } from './package-utils.mjs';
 
 /**
  * Create WordPress externals plugin for esbuild.
@@ -101,12 +102,7 @@ export function createWordpressExternalsPlugin() {
 				) ) {
 					build.onResolve(
 						{
-							filter: new RegExp(
-								`^${ packageName.replace(
-									/[.*+?^${}()|[\]\\]/g,
-									'\\$&'
-								) }$`
-							),
+							filter: new RegExp( `^${ packageName }$` ),
 						},
 						/** @param {import('esbuild').OnResolveArgs} args */
 						( args ) => {
@@ -128,14 +124,12 @@ export function createWordpressExternalsPlugin() {
 						// Extract package name and subpath from import
 						// e.g., '@wordpress/blocks/sub/path' → packageName='@wordpress/blocks', subpath='sub/path'
 						const parts = args.path.split( '/' );
-						const packageName =
-							parts.length >= 2
-								? `${ parts[ 0 ] }/${ parts[ 1 ] }`
-								: args.path;
-						const subpath =
-							parts.length > 2
-								? parts.slice( 2 ).join( '/' )
-								: null;
+						let packageName = args.path;
+						let subpath = null;
+						if ( parts.length > 2 ) {
+							packageName = parts.slice( 0, 2 ).join( '/' );
+							subpath = parts.slice( 2 ).join( '/' );
+						}
 						const shortName = parts[ 1 ]; // 'blocks' from '@wordpress/blocks'
 						const wpHandle = `wp-${ shortName }`;
 
@@ -206,7 +200,7 @@ export function createWordpressExternalsPlugin() {
 					{ filter: /.*/, namespace: 'wordpress-external' },
 					/** @param {import('esbuild').OnLoadArgs} args */
 					( args ) => {
-						const wpGlobal = kebabToCamelCase(
+						const wpGlobal = camelCase(
 							args.path.replace( '@wordpress/', '' )
 						);
 
