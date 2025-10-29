@@ -36,6 +36,7 @@
 	},
 	"react-native": "src/index",
 	"wpScript": true,
+	"types": "build-types",
 	"wpScriptExtraDependencies": [
 		"wp-preferences-persistence"
 	],
