@@ -37,16 +37,19 @@ const PACKAGES_DIR = path.join( ROOT_DIR, 'packages' );
 const BUILD_DIR = path.join( ROOT_DIR, 'build' );
 
 const SOURCE_EXTENSIONS = '{js,ts,tsx}';
-const ASSET_EXTENSIONS = '{json,module.css}';
+const ASSET_EXTENSIONS = 'json';
 const IGNORE_PATTERNS = [
 	'**/benchmark/**',
 	'**/{__mocks__,__tests__,test}/**',
 	'**/{storybook,stories}/**',
 	'**/*.native.*',
+	'**/*.ios.*',
+	'**/*.android.*',
 ];
 const TEST_FILE_PATTERNS = [
 	/\/(benchmark|__mocks__|__tests__|test|storybook|stories)\/.+/,
 	/\.(spec|test)\.(js|ts|tsx)$/,
+	/\.(native|ios|android)\.(js|ts|tsx)$/,
 ];
 
 /**
@@ -92,21 +95,6 @@ const wordpressExternalsPlugin = createWordpressExternalsPlugin(
 	EXTERNAL_NAMESPACES,
 	HANDLE_PREFIX
 );
-
-/**
- * Create emotion babel plugin for esbuild.
- * This plugin enables emotion's babel transformations for proper CSS-in-JS handling.
- *
- * @return {Object} esbuild plugin.
- */
-function emotionBabelPlugin() {
-	return babel( {
-		filter: /\.[jt]sx?$/,
-		config: {
-			plugins: [ '@emotion/babel-plugin' ],
-		},
-	} );
-}
 
 /**
  * Normalize path separators for cross-platform compatibility.
@@ -817,7 +805,60 @@ async function transpilePackage( packageName ) {
 	// Check if this is the components package that needs emotion babel plugin.
 	// Ideally we should remove this exception and move away from emotion.
 	const needsEmotionPlugin = packageName === 'components';
-	const plugins = needsEmotionPlugin ? [ emotionBabelPlugin() ] : [];
+	const emotionPlugin = babel( {
+		filter: /\.[jt]sx?$/,
+		config: {
+			plugins: [ '@emotion/babel-plugin' ],
+		},
+	} );
+	const externalizeAllExceptCssPlugin = {
+		name: 'externalize-except-css',
+		setup( build ) {
+			// Externalize all non-CSS imports
+			build.onResolve( { filter: /.*/ }, ( args ) => {
+				// Skip entry points
+				if ( args.kind === 'entry-point' ) {
+					return null;
+				}
+
+				// Let CSS/SCSS files be processed by sassPlugin
+				if ( args.path.match( /\.(css|scss)$/ ) ) {
+					return null;
+				}
+
+				// Externalize everything else (keep imports as-is)
+				return { path: args.path, external: true };
+			} );
+		},
+	};
+	const plugins = [
+		needsEmotionPlugin && emotionPlugin,
+		externalizeAllExceptCssPlugin,
+		// Handle CSS modules (.module.css and .module.scss)
+		sassPlugin( {
+			embedded: true,
+			filter: /\.module\.(css|scss)$/,
+			transform: postcssModules( {
+				generateScopedName: '[name]__[local]__[hash:base64:5]',
+			} ),
+			type: 'style',
+			loadPaths: [
+				'node_modules',
+				path.join( PACKAGES_DIR, 'base-styles' ),
+			],
+		} ),
+		// Handle regular CSS/SCSS files
+		// Note: .module.css and .module.scss already handled by plugin above
+		sassPlugin( {
+			embedded: true,
+			filter: /\.(css|scss)$/,
+			type: 'style',
+			loadPaths: [
+				'node_modules',
+				path.join( PACKAGES_DIR, 'base-styles' ),
+			],
+		} ),
+	].filter( Boolean );
 
 	if ( packageJson.main ) {
 		builds.push(
@@ -825,7 +866,7 @@ async function transpilePackage( packageName ) {
 				entryPoints: srcFiles,
 				outdir: buildDir,
 				outbase: srcDir,
-				bundle: false,
+				bundle: true,
 				platform: 'node',
 				format: 'cjs',
 				sourcemap: true,
@@ -857,7 +898,7 @@ async function transpilePackage( packageName ) {
 				entryPoints: srcFiles,
 				outdir: buildModuleDir,
 				outbase: srcDir,
-				bundle: false,
+				bundle: true,
 				platform: 'neutral',
 				format: 'esm',
 				sourcemap: true,
