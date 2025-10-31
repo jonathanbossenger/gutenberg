@@ -10,6 +10,7 @@
 
 ### Enhancements
 
+- DataViews: datetime filter and default render use local time. [#72756](https://github.com/WordPress/gutenberg/pull/72756)
 - DataViews: keep icon-only buttons on mobile for bulk actions. [#72761](https://github.com/WordPress/gutenberg/pull/72761)
 - DataForm: update spacing for regular and card layouts. [#72249](https://github.com/WordPress/gutenberg/pull/72249).
 - DataForm: Fix password field suffix alignment. [#72524](https://github.com/WordPress/gutenberg/pull/72524).
