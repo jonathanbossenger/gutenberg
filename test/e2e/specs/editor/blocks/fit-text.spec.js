@@ -304,6 +304,52 @@ test.describe( 'Fit Text', () => {
 				},
 			] );
 		} );
+
+		test( 'should not load frontend script when editing a saved post with fit text', async ( {
+			admin,
+			editor,
+			page,
+		} ) => {
+			await editor.insertBlock( {
+				name: 'core/heading',
+				attributes: {
+					content: 'Test Heading',
+					level: 2,
+					fitText: true,
+				},
+			} );
+
+			const postId = await editor.publishPost();
+
+			await admin.editPost( postId );
+
+			const headingBlock = editor.canvas.locator(
+				'[data-type="core/heading"]'
+			);
+			await expect( headingBlock ).toBeVisible();
+
+			await expect.poll( editor.getBlocks ).toMatchObject( [
+				{
+					name: 'core/heading',
+					attributes: {
+						content: 'Test Heading',
+						level: 2,
+						fitText: true,
+					},
+				},
+			] );
+
+			// Check that the frontend script module is NOT loaded in the editor
+			const frontendScriptLoaded = await page.evaluate( () => {
+				const scripts = Array.from(
+					document.querySelectorAll( 'script[type="module"]' )
+				);
+				return scripts.some( ( script ) =>
+					script.src.includes( 'fit-text-frontend' )
+				);
+			} );
+			expect( frontendScriptLoaded ).toBe( false );
+		} );
 	} );
 
 	test.describe( 'Frontend functionality', () => {
