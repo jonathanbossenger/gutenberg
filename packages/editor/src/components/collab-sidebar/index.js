@@ -50,7 +50,7 @@ function NotesSidebarContent( {
 		<VStack
 			className="editor-collab-sidebar-panel"
 			style={ styles }
-			role="list"
+			role="tree"
 			spacing="3"
 			justify="flex-start"
 			ref={ ( node ) => {
@@ -60,6 +60,9 @@ function NotesSidebarContent( {
 					commentSidebarRef.current = node;
 				}
 			} }
+			aria-label={
+				isFloating ? __( 'Unresolved notes' ) : __( 'All notes' )
+			}
 		>
 			<Comments
 				threads={ comments }

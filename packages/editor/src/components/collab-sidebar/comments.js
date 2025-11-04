@@ -459,8 +459,6 @@ function Thread( {
 	}
 
 	return (
-		// Disable reason: role="listitem" does in fact support aria-expanded.
-		// eslint-disable-next-line jsx-a11y/role-supports-aria-props
 		<VStack
 			className={ clsx( 'editor-collab-sidebar-panel__thread', {
 				'is-selected': isSelected,
@@ -495,7 +493,7 @@ function Thread( {
 				}
 			} }
 			tabIndex={ 0 }
-			role="listitem"
+			role="treeitem"
 			aria-label={ ariaLabel }
 			aria-expanded={ isSelected }
 			ref={ isFloating ? refs.setFloating : undefined }
@@ -586,7 +584,7 @@ function Thread( {
 				/>
 			) }
 			{ isSelected && (
-				<VStack spacing="2">
+				<VStack spacing="2" role="treeitem">
 					<HStack alignment="left" spacing="3" justify="flex-start">
 						<CommentAuthorInfo />
 					</HStack>
@@ -716,7 +714,10 @@ const CommentBoard = ( {
 			: [];
 
 	return (
-		<VStack spacing="2">
+		<VStack
+			spacing="2"
+			role={ thread.parent !== 0 ? 'treeitem' : undefined }
+		>
 			<HStack alignment="left" spacing="3" justify="flex-start">
 				<CommentAuthorInfo
 					avatar={ thread?.author_avatar_urls?.[ 48 ] }
