@@ -12,6 +12,10 @@
 - useFormValidity: make it work with any level of nesting in the form. [#72588](https://github.com/WordPress/gutenberg/pull/72588)
 - Fix: DataViews modal actions in list layout. [#72793](https://github.com/WordPress/gutenberg/pull/72793)
 
+### Enhancements
+
+- DataViews: Group DataViews actions based on primary actions and regular actions and adds a separator between the groups. [#72866](https://github.com/WordPress/gutenberg/pull/72866)
+
 ## 10.2.0 (2025-10-29)
 
 ### Enhancements
