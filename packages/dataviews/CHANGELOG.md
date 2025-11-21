@@ -17,6 +17,7 @@
 ### Bug fixes
 
 - Fix: ensure primary actions are not wrapped in the list layout. [#73333](https://github.com/WordPress/gutenberg/pull/73333)
+- Fix: DataViews consistently opens filter section on clicking Add Filter via column header. [#72998](https://github.com/WordPress/gutenberg/pull/72998)
 
 ### Breaking changes
 
