@@ -1605,6 +1605,7 @@ async function watchMode() {
 				const script = fullToShort.get( fullScript );
 				try {
 					const rebundleStartTime = Date.now();
+					await compileStyles( script );
 					await bundlePackage( script );
 					const rebundleTime = Date.now() - rebundleStartTime;
 					console.log(
