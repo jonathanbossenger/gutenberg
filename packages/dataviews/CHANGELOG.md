@@ -31,6 +31,7 @@
 ### Breaking changes
 
 - DataViews: rename `groupByField` to `groupBy.field` to allow control over both the field and the direction of the grouping. [#72780](https://github.com/WordPress/gutenberg/pull/72780)
+- Types: FieldType is now FieldTypeName. [#73546](https://github.com/WordPress/gutenberg/pull/73546)
 
 ## 10.3.0 (2025-11-12)
 
