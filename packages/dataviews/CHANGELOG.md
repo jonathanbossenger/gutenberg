@@ -24,6 +24,7 @@
 
 - Fix: ensure primary actions are not wrapped in the list layout. [#73333](https://github.com/WordPress/gutenberg/pull/73333)
 - Fix: DataViews consistently opens filter section on clicking Add Filter via column header. [#72998](https://github.com/WordPress/gutenberg/pull/72998)
+- DataForm Panel Layout: Fix Tags fields issue related to deepMerge. [#73344](https://github.com/WordPress/gutenberg/pull/73344)
 
 ### Breaking changes
 
