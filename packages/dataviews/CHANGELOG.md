@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Enhancements
+
+- DataForm: add support for `min`/`max` and `minLength`/`maxLength` validation for relevant controls. [#73465](https://github.com/WordPress/gutenberg/pull/73465)
+
 ## 11.0.0 (2025-11-26)
 
 ### Enhancements
