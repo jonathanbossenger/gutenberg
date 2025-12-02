@@ -78,7 +78,7 @@ if ( window.__experimentalContentOnlyInspectorFields ) {
 		},
 	];
 	settings[ formKey ] = {
-		fields: [ 'content' ],
+		fields: [ 'background' ],
 	};
 }
 
