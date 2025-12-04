@@ -67,7 +67,7 @@ By default `InnerBlocks` opens a list of permitted blocks via `allowedBlocks` wh
 	defaultBlock={
 		{ name: 'core/paragraph', attributes: { content: 'Lorem ipsum...' } }
 	}
-	directInsert={true}
+	directInsert
 />
 ```
 
