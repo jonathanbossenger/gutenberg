@@ -21,7 +21,6 @@ import {
 	MenuItem,
 	ToolbarButton,
 } from '@wordpress/components';
-import { useAsyncList } from '@wordpress/compose';
 import { __, sprintf } from '@wordpress/i18n';
 import { store as coreStore } from '@wordpress/core-data';
 import { useState } from '@wordpress/element';
@@ -40,6 +39,17 @@ import {
 	useAlternativeTemplateParts,
 	useTemplatePartArea,
 } from './utils/hooks';
+import { unlock } from '../../lock-unlock';
+
+function getTemplatePartEditButtonTitle( clientId, editedContentOnlySection ) {
+	if ( ! window?.__experimentalContentOnlyPatternInsertion ) {
+		return __( 'Edit' );
+	}
+
+	return editedContentOnlySection === clientId
+		? __( 'Exit section' )
+		: __( 'Edit section' );
+}
 
 function ReplaceButton( {
 	isEntityAvailable,
@@ -85,7 +95,6 @@ function TemplatesList( { area, clientId, isEntityAvailable, onSelect } ) {
 		isEntityAvailable &&
 		!! blockPatterns.length &&
 		( area === 'header' || area === 'footer' );
-	const shownTemplates = useAsyncList( blockPatterns );
 
 	if ( ! canReplace ) {
 		return null;
@@ -96,9 +105,8 @@ function TemplatesList( { area, clientId, isEntityAvailable, onSelect } ) {
 			<BlockPatternsList
 				label={ __( 'Templates' ) }
 				blockPatterns={ blockPatterns }
-				shownPatterns={ shownTemplates }
 				onClickPattern={ onSelect }
-				showTitle={ false }
+				showTitlesAsTooltip
 			/>
 		</PanelBody>
 	);
@@ -111,8 +119,18 @@ export default function TemplatePartEdit( {
 } ) {
 	const { createSuccessNotice } = useDispatch( noticesStore );
 	const { editEntityRecord } = useDispatch( coreStore );
-	const currentTheme = useSelect(
-		( select ) => select( coreStore ).getCurrentTheme()?.stylesheet,
+	const { editContentOnlySection, stopEditingContentOnlySection } = unlock(
+		useDispatch( blockEditorStore )
+	);
+	const { currentTheme, editedContentOnlySection } = useSelect(
+		( select ) => {
+			return {
+				currentTheme: select( coreStore ).getCurrentTheme()?.stylesheet,
+				editedContentOnlySection: unlock(
+					select( blockEditorStore )
+				).getEditedContentOnlySection(),
+			};
+		},
 		[]
 	);
 	const { slug, theme = currentTheme, tagName, layout = {} } = attributes;
@@ -214,7 +232,7 @@ export default function TemplatePartEdit( {
 			<TagName { ...blockProps }>
 				<Warning>
 					{ sprintf(
-						/* translators: %s: Template part slug */
+						/* translators: %s: Template part slug. */
 						__(
 							'Template part has been deleted or is unavailable: %s'
 						),
@@ -243,14 +261,31 @@ export default function TemplatePartEdit( {
 					canUserEdit && (
 						<BlockControls group="other">
 							<ToolbarButton
-								onClick={ () =>
+								onClick={ () => {
+									if (
+										window?.__experimentalContentOnlyPatternInsertion
+									) {
+										if (
+											editedContentOnlySection !==
+											clientId
+										) {
+											editContentOnlySection( clientId );
+										} else {
+											stopEditingContentOnlySection();
+										}
+										return;
+									}
+
 									onNavigateToEntityRecord( {
 										postId: templatePartId,
 										postType: 'wp_template_part',
-									} )
-								}
+									} );
+								} }
 							>
-								{ __( 'Edit' ) }
+								{ getTemplatePartEditButtonTitle(
+									clientId,
+									editedContentOnlySection
+								) }
 							</ToolbarButton>
 						</BlockControls>
 					) }
@@ -263,6 +298,7 @@ export default function TemplatePartEdit( {
 							templatePartId={ templatePartId }
 							defaultWrapper={ areaObject.tagName }
 							hasInnerBlocks={ hasInnerBlocks }
+							clientId={ clientId }
 						/>
 					</InspectorControls>
 				) }

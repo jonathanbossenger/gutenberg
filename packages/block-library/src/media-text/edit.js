@@ -58,7 +58,6 @@ const applyWidthConstraints = ( width ) =>
 	);
 
 function getImageSourceUrlBySizeSlug( image, slug ) {
-	// eslint-disable-next-line camelcase
 	return image?.media_details?.sizes?.[ slug ]?.source_url;
 }
 
@@ -76,6 +75,7 @@ function attributesFromMedia( {
 				mediaLink: undefined,
 				href: undefined,
 				focalPoint: undefined,
+				useFeaturedImage: false,
 			} );
 			return;
 		}
@@ -104,7 +104,6 @@ function attributesFromMedia( {
 			// Try the "large" size URL, falling back to the "full" size URL below.
 			src =
 				media.sizes?.large?.url ||
-				// eslint-disable-next-line camelcase
 				media.media_details?.sizes?.large?.source_url;
 		}
 
@@ -128,8 +127,35 @@ function attributesFromMedia( {
 			mediaLink: media.link || undefined,
 			href: newHref,
 			focalPoint: undefined,
+			useFeaturedImage: false,
 		} );
 	};
+}
+
+function MediaTextResolutionTool( { image, value, onChange } ) {
+	const { imageSizes } = useSelect( ( select ) => {
+		const { getSettings } = select( blockEditorStore );
+		return {
+			imageSizes: getSettings().imageSizes,
+		};
+	}, [] );
+
+	if ( ! imageSizes?.length ) {
+		return null;
+	}
+
+	const imageSizeOptions = imageSizes
+		.filter( ( { slug } ) => getImageSourceUrlBySizeSlug( image, slug ) )
+		.map( ( { name, slug } ) => ( { value: slug, label: name } ) );
+
+	return (
+		<ResolutionTool
+			value={ value }
+			defaultValue={ DEFAULT_MEDIA_SIZE_SLUG }
+			options={ imageSizeOptions }
+			onChange={ onChange }
+		/>
+	);
 }
 
 function MediaTextEdit( {
@@ -152,12 +178,12 @@ function MediaTextEdit( {
 		mediaType,
 		mediaUrl,
 		mediaWidth,
+		mediaSizeSlug,
 		rel,
 		verticalAlignment,
 		allowedBlocks,
 		useFeaturedImage,
 	} = attributes;
-	const mediaSizeSlug = attributes.mediaSizeSlug || DEFAULT_MEDIA_SIZE_SLUG;
 
 	const [ featuredImage ] = useEntityProp(
 		'postType',
@@ -166,11 +192,42 @@ function MediaTextEdit( {
 		postId
 	);
 
-	const featuredImageMedia = useSelect(
-		( select ) =>
-			featuredImage &&
-			select( coreStore ).getMedia( featuredImage, { context: 'view' } ),
-		[ featuredImage ]
+	const { featuredImageMedia } = useSelect(
+		( select ) => {
+			return {
+				featuredImageMedia:
+					featuredImage && useFeaturedImage
+						? select( coreStore ).getEntityRecord(
+								'postType',
+								'attachment',
+								featuredImage,
+								{
+									context: 'view',
+								}
+						  )
+						: undefined,
+			};
+		},
+		[ featuredImage, useFeaturedImage ]
+	);
+
+	const { image } = useSelect(
+		( select ) => {
+			return {
+				image:
+					mediaId && isSelected
+						? select( coreStore ).getEntityRecord(
+								'postType',
+								'attachment',
+								mediaId,
+								{
+									context: 'view',
+								}
+						  )
+						: null,
+			};
+		},
+		[ isSelected, mediaId ]
 	);
 
 	const featuredImageURL = useFeaturedImage
@@ -196,22 +253,6 @@ function MediaTextEdit( {
 			useFeaturedImage: ! useFeaturedImage,
 		} );
 	};
-
-	const { imageSizes, image } = useSelect(
-		( select ) => {
-			const { getSettings } = select( blockEditorStore );
-			return {
-				image:
-					mediaId && isSelected
-						? select( coreStore ).getMedia( mediaId, {
-								context: 'view',
-						  } )
-						: null,
-				imageSizes: getSettings()?.imageSizes,
-			};
-		},
-		[ isSelected, mediaId ]
-	);
 
 	const refMedia = useRef();
 	const imperativeFocalPointPreview = ( value ) => {
@@ -260,10 +301,6 @@ function MediaTextEdit( {
 	const onVerticalAlignmentChange = ( alignment ) => {
 		setAttributes( { verticalAlignment: alignment } );
 	};
-
-	const imageSizeOptions = imageSizes
-		.filter( ( { slug } ) => getImageSourceUrlBySizeSlug( image, slug ) )
-		.map( ( { name, slug } ) => ( { value: slug, label: name } ) );
 	const updateImage = ( newMediaSizeSlug ) => {
 		const newUrl = getImageSourceUrlBySizeSlug( image, newMediaSizeSlug );
 
@@ -288,8 +325,8 @@ function MediaTextEdit( {
 					mediaAlt: '',
 					focalPoint: undefined,
 					mediaWidth: 50,
-					mediaSizeSlug: undefined,
 				} );
+				updateImage( DEFAULT_MEDIA_SIZE_SLUG );
 			} }
 			dropdownMenuProps={ dropdownMenuProps }
 		>
@@ -409,9 +446,9 @@ function MediaTextEdit( {
 				</ToolsPanelItem>
 			) }
 			{ mediaType === 'image' && ! useFeaturedImage && (
-				<ResolutionTool
+				<MediaTextResolutionTool
+					image={ image }
 					value={ mediaSizeSlug }
-					options={ imageSizeOptions }
 					onChange={ updateImage }
 				/>
 			) }

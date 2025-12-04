@@ -659,6 +659,14 @@ _Related_
 
 -   <https://github.com/WordPress/gutenberg/blob/HEAD/packages/block-editor/src/components/line-height-control/README.md>
 
+### LinkControl
+
+Renders a link control. A link control is a controlled input which maintains a value associated with a link (HTML anchor element) and relevant settings for how that link is expected to behave.
+
+_Parameters_
+
+-   _props_ `WPLinkControlProps`: Component props.
+
 ### MediaPlaceholder
 
 _Related_
@@ -705,9 +713,49 @@ Undocumented declaration.
 
 ### PlainText
 
+Render an auto-growing textarea allow users to fill any textual content.
+
 _Related_
 
 -   <https://github.com/WordPress/gutenberg/blob/HEAD/packages/block-editor/src/components/plain-text/README.md>
+
+_Usage_
+
+```jsx
+import { registerBlockType } from '@wordpress/blocks';
+import { PlainText } from '@wordpress/block-editor';
+
+registerBlockType( 'my-plugin/example-block', {
+	// ...
+
+	attributes: {
+		content: {
+			type: 'string',
+		},
+	},
+
+	edit( { className, attributes, setAttributes } ) {
+		return (
+			<PlainText
+				className={ className }
+				value={ attributes.content }
+				onChange={ ( content ) => setAttributes( { content } ) }
+			/>
+		);
+	},
+} );
+```
+
+_Parameters_
+
+-   _props_ `Object`: Component props.
+-   _props.value_ `string`: String value of the textarea.
+-   _props.onChange_ `Function`: Function called when the text value changes.
+-   _props.ref_ `[Object]`: The component forwards the `ref` property to the `TextareaAutosize` component.
+
+_Returns_
+
+-   `Element`: Plain text component
 
 ### privateApis
 
@@ -801,7 +849,7 @@ _Related_
 
 ### ToolSelector
 
-Undocumented declaration.
+This component has been deprecated and no longer renders anything.
 
 ### transformStyles
 
@@ -838,6 +886,56 @@ _Related_
 _Related_
 
 -   <https://github.com/WordPress/gutenberg/blob/HEAD/packages/block-editor/src/components/url-popover/README.md>
+
+### useBlockBindingsUtils
+
+Retrieves the existing utils needed to update the block `bindings` metadata. They can be used to create, modify, or remove connections from the existing block attributes.
+
+It contains the following utils:
+
+-   `updateBlockBindings`: Updates the value of the bindings connected to block attributes. It can be used to remove a specific binding by setting the value to `undefined`.
+-   `removeAllBlockBindings`: Removes the bindings property of the `metadata` attribute.
+
+_Usage_
+
+```js
+import { useBlockBindingsUtils } from '@wordpress/block-editor';
+const { updateBlockBindings, removeAllBlockBindings } = useBlockBindingsUtils();
+
+// Update url and alt attributes.
+updateBlockBindings( {
+	url: {
+		source: 'core/post-meta',
+		args: {
+			key: 'url_custom_field',
+		},
+	},
+	alt: {
+		source: 'core/post-meta',
+		args: {
+			key: 'text_custom_field',
+		},
+	},
+} );
+
+// Remove binding from url attribute.
+updateBlockBindings( { url: undefined } );
+
+// Remove bindings from all attributes.
+removeAllBlockBindings();
+```
+
+_Parameters_
+
+-   _clientId_ `?string`: Optional block client ID. If not set, it will use the current block client ID from the context.
+
+_Returns_
+
+-   `?WPBlockBindingsUtils`: Object containing the block bindings utils.
+
+_Changelog_
+
+`6.7.0` Introduced in WordPress core.
 
 ### useBlockCommands
 
@@ -1024,14 +1122,6 @@ _Parameters_
 -   _override_ `Object`: Override object.
 -   _override.id_ `?string`: Id of the style override, leave blank to create a new style.
 -   _override.css_ `string`: CSS to apply.
-
-### useZoomOut
-
-A hook used to set the editor mode to zoomed out mode, invoking the hook sets the mode.
-
-_Parameters_
-
--   _zoomOut_ `boolean`: If we should enter into zoomOut mode or not
 
 ### Warning
 

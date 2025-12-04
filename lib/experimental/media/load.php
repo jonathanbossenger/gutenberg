@@ -187,6 +187,24 @@ function gutenberg_rest_get_attachment_filesize( array $post ): ?int {
 }
 
 /**
+ * Filters the list of rewrite rules formatted for output to an .htaccess file.
+ *
+ * Adds support for serving wasm-vips locally.
+ *
+ * @param string $rules mod_rewrite Rewrite rules formatted for .htaccess.
+ * @return string Filtered rewrite rules.
+ */
+function gutenberg_filter_mod_rewrite_rules( string $rules ): string {
+	$rules .= "\n# BEGIN Gutenberg client-side media processing experiment\n" .
+				"AddType application/wasm wasm\n" .
+				"# END Gutenberg client-side media processing experiment\n";
+
+	return $rules;
+}
+
+add_filter( 'mod_rewrite_rules', 'gutenberg_filter_mod_rewrite_rules' );
+
+/**
  * Enables cross-origin isolation in the block editor.
  *
  * Required for enabling SharedArrayBuffer for WebAssembly-based
@@ -229,6 +247,8 @@ add_action( 'load-widgets.php', 'gutenberg_set_up_cross_origin_isolation' );
  * Uses an output buffer to add crossorigin="anonymous" where needed.
  *
  * @link https://web.dev/coop-coep/
+ *
+ * @global bool $is_safari
  */
 function gutenberg_start_cross_origin_isolation_output_buffer(): void {
 	global $is_safari;
@@ -236,16 +256,11 @@ function gutenberg_start_cross_origin_isolation_output_buffer(): void {
 	$coep = $is_safari ? 'require-corp' : 'credentialless';
 
 	ob_start(
-		function ( string $output, ?int $phase ) use ( $coep ): string {
-			// Only send the header when the buffer is not being cleaned.
-			if ( ( $phase & PHP_OUTPUT_HANDLER_CLEAN ) === 0 ) {
-				header( 'Cross-Origin-Opener-Policy: same-origin' );
-				header( "Cross-Origin-Embedder-Policy: $coep" );
+		function ( string $output ) use ( $coep ): string {
+			header( 'Cross-Origin-Opener-Policy: same-origin' );
+			header( "Cross-Origin-Embedder-Policy: $coep" );
 
-				$output = gutenberg_add_crossorigin_attributes( $output );
-			}
-
-			return $output;
+			return gutenberg_add_crossorigin_attributes( $output );
 		}
 	);
 }
@@ -287,7 +302,7 @@ function gutenberg_add_crossorigin_attributes( string $html ): string {
 
 		$processor->set_bookmark( 'resume' );
 
-		$seeked = false;
+		$sought = false;
 
 		$crossorigin = $processor->get_attribute( 'crossorigin' );
 
@@ -295,16 +310,16 @@ function gutenberg_add_crossorigin_attributes( string $html ): string {
 
 		if ( is_string( $url ) && ! str_starts_with( $url, $site_url ) && ! str_starts_with( $url, '/' ) && ! is_string( $crossorigin ) ) {
 			if ( 'SOURCE' === $tag ) {
-				$seeked = $processor->seek( 'audio-video-parent' );
+				$sought = $processor->seek( 'audio-video-parent' );
 
-				if ( $seeked ) {
+				if ( $sought ) {
 					$processor->set_attribute( 'crossorigin', 'anonymous' );
 				}
 			} else {
 				$processor->set_attribute( 'crossorigin', 'anonymous' );
 			}
 
-			if ( $seeked ) {
+			if ( $sought ) {
 				$processor->seek( 'resume' );
 				$processor->release_bookmark( 'audio-video-parent' );
 			}

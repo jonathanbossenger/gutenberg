@@ -1,3 +1,6 @@
+@use "@wordpress/base-styles/colors" as *;
+@use "@wordpress/base-styles/variables" as *;
+
 .document-outline {
 	margin: 20px 0;
 
@@ -53,8 +56,10 @@
 	text-align: left;
 	border-radius: $radius-small;
 
+	&[aria-disabled="true"],
 	&:disabled {
 		cursor: default;
+		color: $gray-700;
 	}
 
 	&:focus {

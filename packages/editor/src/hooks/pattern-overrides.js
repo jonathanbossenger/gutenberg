@@ -6,7 +6,7 @@ import { privateApis as patternsPrivateApis } from '@wordpress/patterns';
 import { createHigherOrderComponent } from '@wordpress/compose';
 import { useBlockEditingMode } from '@wordpress/block-editor';
 import { useSelect } from '@wordpress/data';
-import { store as blocksStore } from '@wordpress/blocks';
+import { getBlockBindingsSource } from '@wordpress/blocks';
 
 /**
  * Internal dependencies
@@ -19,7 +19,6 @@ import { unlock } from '../lock-unlock';
 const {
 	PatternOverridesControls,
 	ResetOverridesControl,
-	PatternOverridesBlockControls,
 	PATTERN_TYPES,
 	PARTIAL_SYNCING_SUPPORTED_BLOCKS,
 	PATTERN_SYNC_TYPES,
@@ -45,7 +44,6 @@ const withPatternOverrideControls = createHigherOrderComponent(
 				{ props.isSelected && isSupportedBlock && (
 					<ControlsWithStoreSubscription { ...props } />
 				) }
-				{ isSupportedBlock && <PatternOverridesBlockControls /> }
 			</>
 		);
 	},
@@ -58,7 +56,6 @@ function ControlsWithStoreSubscription( props ) {
 	const blockEditingMode = useBlockEditingMode();
 	const { hasPatternOverridesSource, isEditingSyncedPattern } = useSelect(
 		( select ) => {
-			const { getBlockBindingsSource } = unlock( select( blocksStore ) );
 			const { getCurrentPostType, getEditedPostAttribute } =
 				select( editorStore );
 

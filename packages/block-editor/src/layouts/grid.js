@@ -13,6 +13,7 @@ import {
 	__experimentalToggleGroupControlOption as ToggleGroupControlOption,
 	__experimentalUnitControl as UnitControl,
 	__experimentalParseQuantityAndUnitFromRawValue as parseQuantityAndUnitFromRawValue,
+	__experimentalVStack as VStack,
 } from '@wordpress/components';
 import { useState } from '@wordpress/element';
 
@@ -71,33 +72,35 @@ export default {
 	} ) {
 		const { allowSizingOnChildren = false } = layoutBlockSupport;
 
-		// In the experiment we want to also show column control in Auto mode, and
-		// the minimum width control in Manual mode.
-		const showColumnsControl =
-			window.__experimentalEnableGridInteractivity ||
-			!! layout?.columnCount;
+		// Always show both column and minimum width controls in Auto mode.
+		// Manual mode (with isManualPlacement) is only available behind the experiment flag.
+		const showColumnsControl = true;
 		const showMinWidthControl =
-			window.__experimentalEnableGridInteractivity ||
-			! layout?.columnCount;
+			! layout?.isManualPlacement ||
+			window.__experimentalEnableGridInteractivity;
 		return (
 			<>
-				<GridLayoutTypeControl
-					layout={ layout }
-					onChange={ onChange }
-				/>
-				{ showColumnsControl && (
-					<GridLayoutColumnsAndRowsControl
-						layout={ layout }
-						onChange={ onChange }
-						allowSizingOnChildren={ allowSizingOnChildren }
-					/>
-				) }
-				{ showMinWidthControl && (
-					<GridLayoutMinimumWidthControl
+				{ window.__experimentalEnableGridInteractivity && (
+					<GridLayoutTypeControl
 						layout={ layout }
 						onChange={ onChange }
 					/>
 				) }
+				<VStack spacing={ 4 }>
+					{ showColumnsControl && (
+						<GridLayoutColumnsAndRowsControl
+							layout={ layout }
+							onChange={ onChange }
+							allowSizingOnChildren={ allowSizingOnChildren }
+						/>
+					) }
+					{ showMinWidthControl && (
+						<GridLayoutMinimumWidthControl
+							layout={ layout }
+							onChange={ onChange }
+						/>
+					) }
+				</VStack>
 			</>
 		);
 	},
@@ -178,8 +181,6 @@ export default {
 		}
 
 		if ( rules.length ) {
-			// Reason to disable: the extra line breaks added by prettier mess with the unit tests.
-			// eslint-disable-next-line prettier/prettier
 			output = `${ appendSelectors( selector ) } { ${ rules.join(
 				'; '
 			) }; }`;
@@ -240,9 +241,9 @@ function GridLayoutMinimumWidthControl( { layout, onChange } ) {
 	};
 
 	return (
-		<fieldset>
+		<fieldset className="block-editor-hooks__grid-layout-minimum-width-control">
 			<BaseControl.VisualLabel as="legend">
-				{ __( 'Minimum column width' ) }
+				{ __( 'Min. column width' ) }
 			</BaseControl.VisualLabel>
 			<Flex gap={ 4 }>
 				<FlexItem isBlock>
@@ -277,6 +278,11 @@ function GridLayoutMinimumWidthControl( { layout, onChange } ) {
 					/>
 				</FlexItem>
 			</Flex>
+			<p className="components-base-control__help">
+				{ __(
+					'Columns will wrap to fewer per row when they can no longer maintain the minimum width.'
+				) }
+			</p>
 		</fieldset>
 	);
 }
@@ -287,10 +293,8 @@ function GridLayoutColumnsAndRowsControl( {
 	onChange,
 	allowSizingOnChildren,
 } ) {
-	// If the grid interactivity experiment is enabled, allow unsetting the column count.
-	const defaultColumnCount = window.__experimentalEnableGridInteractivity
-		? undefined
-		: 3;
+	// Allow unsetting the column count in Auto mode.
+	const defaultColumnCount = undefined;
 	const {
 		columnCount = defaultColumnCount,
 		rowCount,
@@ -299,11 +303,10 @@ function GridLayoutColumnsAndRowsControl( {
 
 	return (
 		<>
-			<fieldset>
-				{ ( ! window.__experimentalEnableGridInteractivity ||
-					! isManualPlacement ) && (
+			<fieldset className="block-editor-hooks__grid-layout-columns-and-rows-controls">
+				{ ! isManualPlacement && (
 					<BaseControl.VisualLabel as="legend">
-						{ __( 'Columns' ) }
+						{ __( 'Max. columns' ) }
 					</BaseControl.VisualLabel>
 				) }
 				<Flex gap={ 4 }>
@@ -311,46 +314,28 @@ function GridLayoutColumnsAndRowsControl( {
 						<NumberControl
 							size="__unstable-large"
 							onChange={ ( value ) => {
-								if (
-									window.__experimentalEnableGridInteractivity
-								) {
-									// Allow unsetting the column count when in auto mode.
-									const defaultNewColumnCount =
-										isManualPlacement ? 1 : undefined;
-									const newColumnCount =
-										value === '' || value === '0'
-											? defaultNewColumnCount
-											: parseInt( value, 10 );
-									onChange( {
-										...layout,
-										columnCount: newColumnCount,
-									} );
-								} else {
-									// Don't allow unsetting the column count.
-									const newColumnCount =
-										value === '' || value === '0'
-											? 1
-											: parseInt( value, 10 );
-									onChange( {
-										...layout,
-										columnCount: newColumnCount,
-									} );
-								}
+								// Allow unsetting the column count when in auto mode.
+								const defaultNewColumnCount = isManualPlacement
+									? 1
+									: undefined;
+								const newColumnCount =
+									value === '' || value === '0'
+										? defaultNewColumnCount
+										: parseInt( value, 10 );
+								onChange( {
+									...layout,
+									columnCount: newColumnCount,
+								} );
 							} }
 							value={ columnCount }
 							min={ 1 }
 							label={ __( 'Columns' ) }
-							hideLabelFromVision={
-								! window.__experimentalEnableGridInteractivity ||
-								! isManualPlacement
-							}
+							hideLabelFromVision={ ! isManualPlacement }
 						/>
 					</FlexItem>
 
 					<FlexItem isBlock>
-						{ window.__experimentalEnableGridInteractivity &&
-						allowSizingOnChildren &&
-						isManualPlacement ? (
+						{ allowSizingOnChildren && isManualPlacement ? (
 							<NumberControl
 								size="__unstable-large"
 								onChange={ ( value ) => {
@@ -413,11 +398,7 @@ function GridLayoutTypeControl( { layout, onChange } ) {
 		minimumColumnWidth || '12rem'
 	);
 
-	const gridPlacement =
-		isManualPlacement ||
-		( !! columnCount && ! window.__experimentalEnableGridInteractivity )
-			? 'manual'
-			: 'auto';
+	const gridPlacement = isManualPlacement ? 'manual' : 'auto';
 
 	const onChangeType = ( value ) => {
 		if ( value === 'manual' ) {
@@ -428,17 +409,9 @@ function GridLayoutTypeControl( { layout, onChange } ) {
 		}
 		onChange( {
 			...layout,
-			columnCount: value === 'manual' ? tempColumnCount : null,
-			rowCount:
-				value === 'manual' &&
-				window.__experimentalEnableGridInteractivity
-					? tempRowCount
-					: undefined,
-			isManualPlacement:
-				value === 'manual' &&
-				window.__experimentalEnableGridInteractivity
-					? true
-					: undefined,
+			columnCount: value === 'manual' ? tempColumnCount : tempColumnCount,
+			rowCount: value === 'manual' ? tempRowCount : undefined,
+			isManualPlacement: value === 'manual' ? true : undefined,
 			minimumColumnWidth:
 				value === 'auto' ? tempMinimumColumnWidth : null,
 		} );
@@ -461,11 +434,7 @@ function GridLayoutTypeControl( { layout, onChange } ) {
 			value={ gridPlacement }
 			onChange={ onChangeType }
 			isBlock
-			help={
-				window.__experimentalEnableGridInteractivity
-					? helpText
-					: undefined
-			}
+			help={ helpText }
 		>
 			<ToggleGroupControlOption
 				key="auto"

@@ -20,16 +20,19 @@
 		},
 		"isLink": {
 			"type": "boolean",
-			"default": false
+			"default": false,
+			"role": "content"
 		},
 		"rel": {
 			"type": "string",
 			"attribute": "rel",
-			"default": ""
+			"default": "",
+			"role": "content"
 		},
 		"linkTarget": {
 			"type": "string",
-			"default": "_self"
+			"default": "_self",
+			"role": "content"
 		}
 	},
 	"example": {
@@ -80,8 +83,5 @@
 			}
 		}
 	},
-	"style": "wp-block-post-title",
-	"selectors": {
-		"typography": ".wp-block-post-title, .wp-block-post-title > a"
-	}
+	"style": "wp-block-post-title"
 }

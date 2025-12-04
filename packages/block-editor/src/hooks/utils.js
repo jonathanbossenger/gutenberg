@@ -263,11 +263,13 @@ export function useBlockSettings( name, parentLayout ) {
 		units,
 		aspectRatio,
 		minHeight,
+		width,
 		layout,
 		borderColor,
 		borderRadius,
 		borderStyle,
 		borderWidth,
+		borderRadiusSizes,
 		customColorsEnabled,
 		customColors,
 		customDuotone,
@@ -320,11 +322,13 @@ export function useBlockSettings( name, parentLayout ) {
 		'spacing.units',
 		'dimensions.aspectRatio',
 		'dimensions.minHeight',
+		'dimensions.width',
 		'layout',
 		'border.color',
 		'border.radius',
 		'border.style',
 		'border.width',
+		'border.radiusSizes',
 		'color.custom',
 		'color.palette.custom',
 		'color.customDuotone',
@@ -423,10 +427,12 @@ export function useBlockSettings( name, parentLayout ) {
 				radius: borderRadius,
 				style: borderStyle,
 				width: borderWidth,
+				radiusSizes: borderRadiusSizes,
 			},
 			dimensions: {
 				aspectRatio,
 				minHeight,
+				width,
 			},
 			layout,
 			parentLayout,
@@ -463,12 +469,14 @@ export function useBlockSettings( name, parentLayout ) {
 		units,
 		aspectRatio,
 		minHeight,
+		width,
 		layout,
 		parentLayout,
 		borderColor,
 		borderRadius,
 		borderStyle,
 		borderWidth,
+		borderRadiusSizes,
 		customColorsEnabled,
 		customColors,
 		customDuotone,
@@ -562,8 +570,13 @@ export function createBlockEditFilter( features ) {
 	addFilter( 'editor.BlockEdit', 'core/editor/hooks', withBlockEditHooks );
 }
 
-function BlockProps( { index, useBlockProps, setAllWrapperProps, ...props } ) {
-	const wrapperProps = useBlockProps( props );
+function BlockProps( {
+	index,
+	useBlockProps: hook,
+	setAllWrapperProps,
+	...props
+} ) {
+	const wrapperProps = hook( props );
 	const setWrapperProps = ( next ) =>
 		setAllWrapperProps( ( prev ) => {
 			const nextAll = [ ...prev ];

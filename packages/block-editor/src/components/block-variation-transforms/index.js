@@ -5,22 +5,22 @@ import { store as blocksStore } from '@wordpress/blocks';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	Button,
-	DropdownMenu,
-	MenuGroup,
-	MenuItemsChoice,
 	__experimentalToggleGroupControl as ToggleGroupControl,
 	__experimentalToggleGroupControlOptionIcon as ToggleGroupControlOptionIcon,
 	VisuallyHidden,
+	privateApis as componentsPrivateApis,
 } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { useMemo } from '@wordpress/element';
-import { chevronDown } from '@wordpress/icons';
 
 /**
  * Internal dependencies
  */
 import BlockIcon from '../block-icon';
 import { store as blockEditorStore } from '../../store';
+import { unlock } from '../../lock-unlock';
+
+const { Menu } = unlock( componentsPrivateApis );
 
 function VariationsButtons( {
 	className,
@@ -35,8 +35,8 @@ function VariationsButtons( {
 			</VisuallyHidden>
 			{ variations.map( ( variation ) => (
 				<Button
-					// TODO: Switch to `true` (40px size) if possible
-					__next40pxDefaultSize={ false }
+					__next40pxDefaultSize
+					size="compact"
 					key={ variation.name }
 					icon={ <BlockIcon icon={ variation.icon } showColors /> }
 					isPressed={ selectedValue === variation.name }
@@ -44,7 +44,7 @@ function VariationsButtons( {
 						selectedValue === variation.name
 							? variation.title
 							: sprintf(
-									/* translators: %s: Name of the block variation */
+									/* translators: %s: Block or block variation name. */
 									__( 'Transform to %s' ),
 									variation.title
 							  )
@@ -64,38 +64,45 @@ function VariationsDropdown( {
 	selectedValue,
 	variations,
 } ) {
-	const selectOptions = variations.map(
-		( { name, title, description } ) => ( {
-			value: name,
-			label: title,
-			info: description,
-		} )
-	);
-
 	return (
-		<DropdownMenu
-			className={ className }
-			label={ __( 'Transform to variation' ) }
-			text={ __( 'Transform to variation' ) }
-			popoverProps={ {
-				position: 'bottom center',
-				className: `${ className }__popover`,
-			} }
-			icon={ chevronDown }
-			toggleProps={ { iconPosition: 'right' } }
-		>
-			{ () => (
-				<div className={ `${ className }__container` }>
-					<MenuGroup>
-						<MenuItemsChoice
-							choices={ selectOptions }
-							value={ selectedValue }
-							onSelect={ onSelectVariation }
-						/>
-					</MenuGroup>
-				</div>
-			) }
-		</DropdownMenu>
+		<div className={ className }>
+			<Menu>
+				<Menu.TriggerButton
+					render={
+						<Button
+							className="block-editor-block-variation-transforms__button"
+							__next40pxDefaultSize
+							variant="secondary"
+						>
+							{ __( 'Transform to variation' ) }
+						</Button>
+					}
+				/>
+				<Menu.Popover position="bottom">
+					<Menu.Group>
+						{ variations.map( ( variation ) => (
+							<Menu.RadioItem
+								key={ variation.name }
+								value={ variation.name }
+								checked={ selectedValue === variation.name }
+								onChange={ () =>
+									onSelectVariation( variation.name )
+								}
+							>
+								<Menu.ItemLabel>
+									{ variation.title }
+								</Menu.ItemLabel>
+								{ variation.description && (
+									<Menu.ItemHelpText>
+										{ variation.description }
+									</Menu.ItemHelpText>
+								) }
+							</Menu.RadioItem>
+						) ) }
+					</Menu.Group>
+				</Menu.Popover>
+			</Menu>
+		</div>
 	);
 }
 
@@ -126,7 +133,7 @@ function VariationsToggleGroupControl( {
 							selectedValue === variation.name
 								? variation.title
 								: sprintf(
-										/* translators: %s: Name of the block variation */
+										/* translators: %s: Block or block variation name. */
 										__( 'Transform to %s' ),
 										variation.title
 								  )
@@ -140,23 +147,102 @@ function VariationsToggleGroupControl( {
 
 function __experimentalBlockVariationTransforms( { blockClientId } ) {
 	const { updateBlockAttributes } = useDispatch( blockEditorStore );
-	const { activeBlockVariation, variations } = useSelect(
+	const {
+		activeBlockVariation,
+		unfilteredVariations,
+		blockName,
+		isContentOnly,
+		isSection,
+	} = useSelect(
 		( select ) => {
 			const { getActiveBlockVariation, getBlockVariations } =
 				select( blocksStore );
-			const { getBlockName, getBlockAttributes } =
-				select( blockEditorStore );
+
+			const {
+				getBlockName,
+				getBlockAttributes,
+				getBlockEditingMode,
+				isSectionBlock,
+			} = unlock( select( blockEditorStore ) );
+
 			const name = blockClientId && getBlockName( blockClientId );
+
+			const { hasContentRoleAttribute } = unlock( select( blocksStore ) );
+			const isContentBlock = hasContentRoleAttribute( name );
+
 			return {
 				activeBlockVariation: getActiveBlockVariation(
 					name,
-					getBlockAttributes( blockClientId )
+					getBlockAttributes( blockClientId ),
+					'transform'
 				),
-				variations: name && getBlockVariations( name, 'transform' ),
+				unfilteredVariations:
+					name && getBlockVariations( name, 'transform' ),
+				blockName: name,
+				isContentOnly:
+					getBlockEditingMode( blockClientId ) === 'contentOnly' &&
+					! isContentBlock,
+				isSection: isSectionBlock( blockClientId ),
 			};
 		},
 		[ blockClientId ]
 	);
+
+	/*
+	 * Hack for WordPress 6.9
+	 *
+	 * The Stretchy blocks shipped in 6.9 were ultimately
+	 * implemented as block variations of the base types Paragraph
+	 * and Heading. See #73056 for discussion and trade-offs.
+	 *
+	 * The main drawback of this choice is that the Variations API
+	 * doesn't offer enough control over how prominent and how tied
+	 * to the base type a variation should be.
+	 *
+	 * In order to ship these new "blocks" with an acceptable UX,
+	 * we need two hacks until the Variations API is improved:
+	 *
+	 * - Don't show the variations switcher in the block inspector
+	 *   for Paragraph, Heading, Stretchy Paragraph and Stretchy
+	 *   Heading (implemented below). Transformations are still
+	 *   available in the block switcher.
+	 *
+	 * - Move the stretchy variations to the end of the core blocks
+	 *   list in the block inserter (implemented in
+	 *   getInserterItems in #73056).
+	 */
+	const variations = useMemo( () => {
+		if ( blockName === 'core/paragraph' ) {
+			// Always hide options when active variation is stretchy, but
+			// ensure that there are no third-party variations before doing the
+			// same elsewhere.
+			if (
+				activeBlockVariation?.name === 'stretchy-paragraph' ||
+				unfilteredVariations.every( ( v ) =>
+					[ 'paragraph', 'stretchy-paragraph' ].includes( v.name )
+				)
+			) {
+				return [];
+			}
+			// If there are other variations, only hide the stretchy one.
+			return unfilteredVariations.filter(
+				( v ) => v.name !== 'stretchy-paragraph'
+			);
+		} else if ( blockName === 'core/heading' ) {
+			if (
+				activeBlockVariation?.name === 'stretchy-heading' ||
+				unfilteredVariations.every( ( v ) =>
+					[ 'heading', 'stretchy-heading' ].includes( v.name )
+				)
+			) {
+				return [];
+			}
+			return unfilteredVariations.filter(
+				( v ) => v.name !== 'stretchy-heading'
+			);
+		}
+		return unfilteredVariations;
+	}, [ activeBlockVariation?.name, blockName, unfilteredVariations ] );
 
 	const selectedValue = activeBlockVariation?.name;
 
@@ -181,8 +267,10 @@ function __experimentalBlockVariationTransforms( { blockClientId } ) {
 		} );
 	};
 
-	// Skip rendering if there are no variations
-	if ( ! variations?.length ) {
+	const hideVariationsForSections =
+		window?.__experimentalContentOnlyPatternInsertion && isSection;
+
+	if ( ! variations?.length || isContentOnly || hideVariationsForSections ) {
 		return null;
 	}
 

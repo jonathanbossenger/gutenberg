@@ -26,6 +26,7 @@ import { moreVertical, external } from '@wordpress/icons';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { store as noticesStore } from '@wordpress/notices';
 import { isBlobURL } from '@wordpress/blob';
+import { getFilename } from '@wordpress/url';
 
 /**
  * Internal dependencies
@@ -35,9 +36,8 @@ import { getBlockAndPreviewFromMedia } from './utils';
 import { store as blockEditorStore } from '../../../store';
 
 const ALLOWED_MEDIA_TYPES = [ 'image' ];
-const MAXIMUM_TITLE_LENGTH = 25;
 const MEDIA_OPTIONS_POPOVER_PROPS = {
-	position: 'bottom left',
+	placement: 'bottom-end',
 	className:
 		'block-editor-inserter__media-list__item-preview-options__popover',
 };
@@ -100,8 +100,7 @@ function InsertExternalImageModal( { onClose, onSubmit } ) {
 			>
 				<FlexItem>
 					<Button
-						// TODO: Switch to `true` (40px size) if possible
-						__next40pxDefaultSize={ false }
+						__next40pxDefaultSize
 						variant="tertiary"
 						onClick={ onClose }
 					>
@@ -110,8 +109,7 @@ function InsertExternalImageModal( { onClose, onSubmit } ) {
 				</FlexItem>
 				<FlexItem>
 					<Button
-						// TODO: Switch to `true` (40px size) if possible
-						__next40pxDefaultSize={ false }
+						__next40pxDefaultSize
 						variant="primary"
 						onClick={ onSubmit }
 					>
@@ -134,7 +132,8 @@ export function MediaPreview( { media, onClick, category } ) {
 	);
 	const { createErrorNotice, createSuccessNotice } =
 		useDispatch( noticesStore );
-	const { getSettings } = useSelect( blockEditorStore );
+	const { getSettings, getBlock } = useSelect( blockEditorStore );
+	const { updateBlockAttributes } = useDispatch( blockEditorStore );
 
 	const onMediaInsert = useCallback(
 		( previewBlock ) => {
@@ -169,30 +168,51 @@ export function MediaPreview( { media, onClick, category } ) {
 				.fetch( url )
 				.then( ( response ) => response.blob() )
 				.then( ( blob ) => {
+					const fileName = getFilename( url ) || 'image.jpg';
+					const file = new File( [ blob ], fileName, {
+						type: blob.type,
+					} );
+
 					settings.mediaUpload( {
-						filesList: [ blob ],
+						filesList: [ file ],
 						additionalData: { caption },
 						onFileChange( [ img ] ) {
 							if ( isBlobURL( img.url ) ) {
 								return;
 							}
-							onClick( {
-								...clonedBlock,
-								attributes: {
+
+							if ( ! getBlock( clonedBlock.clientId ) ) {
+								// Ensure the block is only inserted once.
+								onClick( {
+									...clonedBlock,
+									attributes: {
+										...clonedBlock.attributes,
+										id: img.id,
+										url: img.url,
+									},
+								} );
+
+								createSuccessNotice(
+									__( 'Image uploaded and inserted.' ),
+									{ type: 'snackbar', id: 'inserter-notice' }
+								);
+							} else {
+								// For subsequent calls, update the existing block.
+								updateBlockAttributes( clonedBlock.clientId, {
 									...clonedBlock.attributes,
 									id: img.id,
 									url: img.url,
-								},
-							} );
-							createSuccessNotice(
-								__( 'Image uploaded and inserted.' ),
-								{ type: 'snackbar' }
-							);
+								} );
+							}
+
 							setIsInserting( false );
 						},
 						allowedTypes: ALLOWED_MEDIA_TYPES,
 						onError( message ) {
-							createErrorNotice( message, { type: 'snackbar' } );
+							createErrorNotice( message, {
+								type: 'snackbar',
+								id: 'inserter-notice',
+							} );
 							setIsInserting( false );
 						},
 					} );
@@ -207,7 +227,9 @@ export function MediaPreview( { media, onClick, category } ) {
 			getSettings,
 			onClick,
 			createSuccessNotice,
+			updateBlockAttributes,
 			createErrorNotice,
+			getBlock,
 		]
 	);
 
@@ -216,12 +238,6 @@ export function MediaPreview( { media, onClick, category } ) {
 			? media.title
 			: media.title?.rendered || __( 'no title' );
 
-	let truncatedTitle;
-	if ( title.length > MAXIMUM_TITLE_LENGTH ) {
-		const omission = '...';
-		truncatedTitle =
-			title.slice( 0, MAXIMUM_TITLE_LENGTH - omission.length ) + omission;
-	}
 	const onMouseEnter = useCallback( () => setIsHovered( true ), [] );
 	const onMouseLeave = useCallback( () => setIsHovered( false ), [] );
 	return (
@@ -245,7 +261,7 @@ export function MediaPreview( { media, onClick, category } ) {
 							onMouseEnter={ onMouseEnter }
 							onMouseLeave={ onMouseLeave }
 						>
-							<Tooltip text={ truncatedTitle || title }>
+							<Tooltip text={ title }>
 								<Composite.Item
 									render={
 										<div
@@ -283,6 +299,7 @@ export function MediaPreview( { media, onClick, category } ) {
 						onClick( cloneBlock( block ) );
 						createSuccessNotice( __( 'Image inserted.' ), {
 							type: 'snackbar',
+							id: 'inserter-notice',
 						} );
 						setShowExternalUploadModal( false );
 					} }

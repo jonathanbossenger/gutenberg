@@ -20,11 +20,13 @@
 		},
 		"isLink": {
 			"type": "boolean",
-			"default": true
+			"default": true,
+			"role": "content"
 		},
 		"linkTarget": {
 			"type": "string",
-			"default": "_self"
+			"default": "_self",
+			"role": "content"
 		}
 	},
 	"example": {
@@ -75,8 +77,5 @@
 		}
 	},
 	"editorStyle": "wp-block-site-title-editor",
-	"style": "wp-block-site-title",
-	"selectors": {
-		"typography": ".wp-block-site-title > span, .wp-block-site-title > a"
-	}
+	"style": "wp-block-site-title"
 }

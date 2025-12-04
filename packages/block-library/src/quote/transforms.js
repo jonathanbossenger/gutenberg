@@ -67,7 +67,7 @@ const transforms = {
 			isMultiBlock: true,
 			blocks: [ '*' ],
 			isMatch: ( {}, blocks ) => {
-				// When a single block is selected make the tranformation
+				// When a single block is selected make the transformation
 				// available only to specific blocks that make sense.
 				if ( blocks.length === 1 ) {
 					return [
@@ -94,31 +94,6 @@ const transforms = {
 		},
 	],
 	to: [
-		{
-			type: 'block',
-			blocks: [ 'core/pullquote' ],
-			isMatch: ( {}, block ) => {
-				return block.innerBlocks.every(
-					( { name } ) => name === 'core/paragraph'
-				);
-			},
-			transform: (
-				{ align, citation, anchor, fontSize, style },
-				innerBlocks
-			) => {
-				const value = innerBlocks
-					.map( ( { attributes } ) => `${ attributes.content }` )
-					.join( '<br>' );
-				return createBlock( 'core/pullquote', {
-					value,
-					align,
-					citation,
-					anchor,
-					fontSize,
-					style,
-				} );
-			},
-		},
 		{
 			type: 'block',
 			blocks: [ 'core/paragraph' ],

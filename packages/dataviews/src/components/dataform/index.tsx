@@ -1,17 +1,42 @@
 /**
+ * WordPress dependencies
+ */
+import { useMemo } from '@wordpress/element';
+
+/**
  * Internal dependencies
  */
 import type { DataFormProps } from '../../types';
-import { getFormLayout } from '../../dataforms-layouts';
+import { DataFormProvider } from '../dataform-context';
+import normalizeFields from '../../field-types';
+import { DataFormLayout } from '../../dataform-layouts/data-form-layout';
+import normalizeForm from '../../dataform-layouts/normalize-form';
 
 export default function DataForm< Item >( {
+	data,
 	form,
-	...props
+	fields,
+	onChange,
+	validity,
 }: DataFormProps< Item > ) {
-	const layout = getFormLayout( form.type ?? 'regular' );
-	if ( ! layout ) {
+	const normalizedForm = useMemo( () => normalizeForm( form ), [ form ] );
+	const normalizedFields = useMemo(
+		() => normalizeFields( fields ),
+		[ fields ]
+	);
+
+	if ( ! form.fields ) {
 		return null;
 	}
 
-	return <layout.component form={ form } { ...props } />;
+	return (
+		<DataFormProvider fields={ normalizedFields }>
+			<DataFormLayout
+				data={ data }
+				form={ normalizedForm }
+				onChange={ onChange }
+				validity={ validity }
+			/>
+		</DataFormProvider>
+	);
 }

@@ -4,7 +4,7 @@
 import { useState, useId } from '@wordpress/element';
 import {
 	InspectorControls,
-	privateApis as blockEditorPrivateApis,
+	useBlockBindingsUtils,
 } from '@wordpress/block-editor';
 import { BaseControl, Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -17,9 +17,6 @@ import {
 	AllowOverridesModal,
 	DisallowOverridesModal,
 } from './allow-overrides-modal';
-import { unlock } from '../lock-unlock';
-
-const { useBlockBindingsUtils } = unlock( blockEditorPrivateApis );
 
 function PatternOverridesControls( {
 	attributes,
@@ -64,13 +61,12 @@ function PatternOverridesControls( {
 	}
 
 	const hasUnsupportedImageAttributes =
-		blockName === 'core/image' &&
-		( !! attributes.caption?.length || !! attributes.href?.length );
+		blockName === 'core/image' && !! attributes.href?.length;
 
 	const helpText =
 		! hasOverrides && hasUnsupportedImageAttributes
 			? __(
-					`Overrides currently don't support image captions or links. Remove the caption or link first before enabling overrides.`
+					`Overrides currently don't support image links. Remove the link first before enabling overrides.`
 			  )
 			: __(
 					'Allow changes to this block throughout instances of this pattern.'

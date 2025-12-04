@@ -12,6 +12,7 @@ import { UP, DOWN, ENTER, TAB } from '@wordpress/keycodes';
 import {
 	BaseControl,
 	Button,
+	__experimentalInputControl as InputControl,
 	Spinner,
 	withSpokenMessages,
 	Popover,
@@ -51,7 +52,7 @@ class URLInput extends Component {
 		this.handleOnClick = this.handleOnClick.bind( this );
 		this.bindSuggestionNode = this.bindSuggestionNode.bind( this );
 		this.autocompleteRef = props.autocompleteRef || createRef();
-		this.inputRef = createRef();
+		this.inputRef = props.inputRef || createRef();
 		this.updateSuggestions = debounce(
 			this.updateSuggestions.bind( this ),
 			200
@@ -195,7 +196,7 @@ class URLInput extends Component {
 				if ( !! suggestions.length ) {
 					this.props.debouncedSpeak(
 						sprintf(
-							/* translators: %s: number of results. */
+							/* translators: %d: number of results. */
 							_n(
 								'%d result found, use up and down arrow keys to navigate.',
 								'%d results found, use up and down arrow keys to navigate.',
@@ -234,8 +235,8 @@ class URLInput extends Component {
 		this.suggestionsRequest = request;
 	}
 
-	onChange( event ) {
-		this.props.onChange( event.target.value );
+	onChange( newValue ) {
+		this.props.onChange( newValue );
 	}
 
 	onFocus() {
@@ -423,6 +424,8 @@ class URLInput extends Component {
 			__experimentalRenderControl: renderControl,
 			value = '',
 			hideLabelFromVision = false,
+			help = null,
+			disabled = false,
 		} = this.props;
 
 		const {
@@ -448,12 +451,11 @@ class URLInput extends Component {
 			id: inputId,
 			value,
 			required: true,
-			className: 'block-editor-url-input__input',
 			type: 'text',
-			onChange: this.onChange,
-			onFocus: this.onFocus,
+			onChange: disabled ? () => {} : this.onChange, // Disable onChange when disabled
+			onFocus: disabled ? () => {} : this.onFocus, // Disable onFocus when disabled
 			placeholder,
-			onKeyDown: this.onKeyDown,
+			onKeyDown: disabled ? () => {} : this.onKeyDown, // Disable onKeyDown when disabled
 			role: 'combobox',
 			'aria-label': label ? undefined : __( 'URL' ), // Ensure input always has an accessible label
 			'aria-expanded': showSuggestions,
@@ -464,6 +466,9 @@ class URLInput extends Component {
 					? `${ suggestionOptionIdPrefix }-${ selectedSuggestion }`
 					: undefined,
 			ref: this.inputRef,
+			disabled,
+			suffix: this.props.suffix,
+			help,
 		};
 
 		if ( renderControl ) {
@@ -472,7 +477,7 @@ class URLInput extends Component {
 
 		return (
 			<BaseControl __nextHasNoMarginBottom { ...controlProps }>
-				<input { ...inputProps } />
+				<InputControl { ...inputProps } __next40pxDefaultSize />
 				{ loading && <Spinner /> }
 			</BaseControl>
 		);
@@ -532,15 +537,13 @@ class URLInput extends Component {
 			<Popover placement="bottom" focusOnMount={ false }>
 				<div
 					{ ...suggestionsListProps }
-					className={ clsx(
-						'block-editor-url-input__suggestions',
-						`${ className }__suggestions`
-					) }
+					className={ clsx( 'block-editor-url-input__suggestions', {
+						[ `${ className }__suggestions` ]: className,
+					} ) }
 				>
 					{ suggestions.map( ( suggestion, index ) => (
 						<Button
-							// TODO: Switch to `true` (40px size) if possible
-							__next40pxDefaultSize={ false }
+							__next40pxDefaultSize
 							{ ...buildSuggestionItemProps( suggestion, index ) }
 							key={ suggestion.id }
 							className={ clsx(

@@ -26,12 +26,7 @@ import {
 /**
  * Internal dependencies
  */
-import {
-	TEMPLATE_POST_TYPE,
-	TEMPLATE_PART_POST_TYPE,
-	PATTERN_POST_TYPE,
-	NAVIGATION_POST_TYPE,
-} from '../../store/constants';
+import { DESIGN_POST_TYPES } from '../../store/constants';
 import PostPanelRow from '../post-panel-row';
 import PostSticky from '../post-sticky';
 import { PrivatePostSchedule } from '../post-schedule';
@@ -72,13 +67,6 @@ export const STATUS_OPTIONS = [
 		value: 'publish',
 		description: __( 'Visible to everyone.' ),
 	},
-];
-
-const DESIGN_POST_TYPES = [
-	TEMPLATE_POST_TYPE,
-	TEMPLATE_PART_POST_TYPE,
-	PATTERN_POST_TYPE,
-	NAVIGATION_POST_TYPE,
 ];
 
 export default function PostStatus() {
@@ -173,6 +161,7 @@ export default function PostStatus() {
 					focusOnMount
 					renderToggle={ ( { onToggle, isOpen } ) => (
 						<Button
+							className="editor-post-status__toggle"
 							variant="tertiary"
 							size="compact"
 							onClick={ onToggle }
@@ -193,7 +182,12 @@ export default function PostStatus() {
 								title={ __( 'Status & visibility' ) }
 								onClose={ onClose }
 							/>
-							<form>
+							<form
+								onSubmit={ ( event ) => {
+									event.preventDefault();
+									onClose();
+								} }
+							>
 								<VStack spacing={ 4 }>
 									<RadioControl
 										className="editor-change-status__options"
@@ -229,7 +223,7 @@ export default function PostStatus() {
 													'Password protected'
 												) }
 												help={ __(
-													'Only visible to those who know the password'
+													'Only visible to those who know the password.'
 												) }
 												checked={ showPassword }
 												onChange={

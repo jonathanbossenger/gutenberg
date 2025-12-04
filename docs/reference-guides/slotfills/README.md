@@ -61,7 +61,7 @@ const EditPostDocumentSettingPanel = () => {
 		return postTypeObject?.viewable;
 	}, [] );
 
-	// If the post type is not viewable, then do not render my the fill.
+	// If the post type is not viewable, then do not render the plugin.
 	if ( ! isViewable ) {
 		return null;
 	}
@@ -166,7 +166,7 @@ import { __ } from '@wordpress/i18n';
  */
 const SiteEditorDocumentSettingPanel = () => {
 	// Retrieve information about the current post type.
-	const { isViewable } = useSelect( ( select ) => {
+	const isViewable = useSelect( ( select ) => {
 		const postTypeName = select( editorStore ).getCurrentPostType();
 		const postTypeObject = select( coreStore ).getPostType( postTypeName );
 

@@ -5,21 +5,6 @@ const glob = require( 'glob' ).sync;
 const { join } = require( 'path' );
 
 /**
- * Internal dependencies
- */
-const { version } = require( './package' );
-
-/**
- * Regular expression string matching a SemVer string with equal major/minor to
- * the current package version. Used in identifying deprecations.
- *
- * @type {string}
- */
-const majorMinorRegExp =
-	version.replace( /\.\d+$/, '' ).replace( /[\\^$.*+?()[\]{}|]/g, '\\$&' ) +
-	'(\\.\\d+)?';
-
-/**
  * The list of patterns matching files used only for development purposes.
  *
  * @type {string[]}
@@ -29,6 +14,8 @@ const developmentFiles = [
 	'**/@(__mocks__|__tests__|test)/**/*.[tj]s?(x)',
 	'**/@(storybook|stories)/**/*.[tj]s?(x)',
 	'packages/babel-preset-default/bin/**/*.js',
+	'packages/theme/bin/**/*.[tj]s?(x)',
+	'packages/theme/terrazzo.config.ts',
 ];
 
 // All files from packages that have types provided with TypeScript.
@@ -89,16 +76,8 @@ const restrictedSyntax = [
 	// here. That's why we use \\u002F in the regexes below.
 	{
 		selector:
-			'ImportDeclaration[source.value=/^@wordpress\\u002F.+\\u002F/]',
+			'ImportDeclaration[source.value=/^@wordpress\\u002F.+\\u002F/]:not([source.value=/^@wordpress\\u002F.+\\u002Fbuild-types\\u002F/])',
 		message: 'Path access on WordPress dependencies is not allowed.',
-	},
-	{
-		selector:
-			'CallExpression[callee.name="deprecated"] Property[key.name="version"][value.value=/' +
-			majorMinorRegExp +
-			'/]',
-		message:
-			'Deprecated functions must be removed before releasing this version.',
 	},
 	{
 		selector:
@@ -113,17 +92,7 @@ const restrictedSyntax = [
 	},
 	{
 		selector: 'JSXAttribute[name.name="id"][value.type="Literal"]',
-		message:
-			'Do not use string literals for IDs; use withInstanceId instead.',
-	},
-	{
-		// Discourage the usage of `Math.random()` as it's a code smell
-		// for UUID generation, for which we already have a higher-order
-		// component: `withInstanceId`.
-		selector:
-			'CallExpression[callee.object.name="Math"][callee.property.name="random"]',
-		message:
-			'Do not use Math.random() to generate unique IDs; use withInstanceId instead. (If you’re not generating unique IDs: ignore this message.)',
+		message: 'Do not use string literals for IDs; use useId hook instead.',
 	},
 	{
 		selector:
@@ -136,6 +105,17 @@ const restrictedSyntax = [
 			'LogicalExpression[operator="&&"][left.property.name="length"][right.type="JSXElement"]',
 		message:
 			'Avoid truthy checks on length property rendering, as zero length is rendered verbatim.',
+	},
+	{
+		selector:
+			'CallExpression[callee.name=/^(__|_x|_n|_nx)$/] > Literal[value=/toggle\\b/i]',
+		message: "Avoid using the verb 'Toggle' in translatable strings",
+	},
+	{
+		selector:
+			'CallExpression[callee.name=/^(__|_x|_n|_nx)$/] > Literal[value=/(?<![-\\w])sidebar(?![-\\w])/i]',
+		message:
+			"Avoid using the word 'sidebar' in translatable strings. Consider using 'panel' instead.",
 	},
 ];
 
@@ -156,6 +136,7 @@ module.exports = {
 		'plugin:eslint-comments/recommended',
 		'plugin:storybook/recommended',
 	],
+	plugins: [ 'react-compiler' ],
 	globals: {
 		wp: 'off',
 		globalThis: 'readonly',
@@ -187,6 +168,7 @@ module.exports = {
 		],
 		'@wordpress/no-unsafe-wp-apis': 'off',
 		'@wordpress/data-no-store-string-literals': 'error',
+		'eslint-comments/no-unused-disable': 'error',
 		'import/default': 'error',
 		'import/named': 'error',
 		'no-restricted-imports': [
@@ -216,6 +198,21 @@ module.exports = {
 			},
 		],
 		'no-restricted-syntax': [ 'error', ...restrictedSyntax ],
+		'jsdoc/check-tag-names': [
+			'error',
+			{
+				definedTags: [ 'jest-environment' ],
+			},
+		],
+		'react-compiler/react-compiler': [
+			'error',
+			{
+				environment: {
+					enableTreatRefLikeIdentifiersAsRefs: true,
+					validateRefAccessDuringRender: false,
+				},
+			},
+		],
 	},
 	overrides: [
 		{
@@ -230,6 +227,7 @@ module.exports = {
 				'import/no-unresolved': 'off',
 				'import/named': 'off',
 				'@wordpress/data-no-store-string-literals': 'off',
+				'react-compiler/react-compiler': 'off',
 			},
 		},
 		{
@@ -315,6 +313,8 @@ module.exports = {
 					...[
 						'BorderBoxControl',
 						'BorderControl',
+						'BoxControl',
+						'Button',
 						'ComboboxControl',
 						'CustomSelectControl',
 						'DimensionControl',
@@ -336,7 +336,7 @@ module.exports = {
 						selector: `JSXOpeningElement[name.name="${ componentName }"]:not(:has(JSXAttribute[name.name="__next40pxDefaultSize"][value.expression.value!=false])):not(:has(JSXAttribute[name.name="size"][value.value!="default"]))`,
 						message:
 							componentName +
-							' should have the `__next40pxDefaultSize` prop to opt-in to the new default size.',
+							' should have the `__next40pxDefaultSize` prop when using the default size.',
 					} ) ),
 					{
 						// Falsy `__next40pxDefaultSize` without a `render` prop.
@@ -345,27 +345,7 @@ module.exports = {
 						message:
 							'FormFileUpload should have the `__next40pxDefaultSize` prop to opt-in to the new default size.',
 					},
-					// Temporary rules until all existing components have the `__next40pxDefaultSize` prop.
-					...[ 'Button' ].map( ( componentName ) => ( {
-						// Not strict. Allows pre-existing __next40pxDefaultSize={ false } usage until they are all manually updated.
-						selector: `JSXOpeningElement[name.name="${ componentName }"]:not(:has(JSXAttribute[name.name="__next40pxDefaultSize"])):not(:has(JSXAttribute[name.name="size"]))`,
-						message:
-							componentName +
-							' should have the `__next40pxDefaultSize` prop to opt-in to the new default size.',
-					} ) ),
 				],
-			},
-		},
-		{
-			files: [
-				// Components package.
-				'packages/components/src/**/*.[tj]s?(x)',
-				// Navigation block.
-				'packages/block-library/src/navigation/**/*.[tj]s?(x)',
-			],
-			excludedFiles: [ ...developmentFiles ],
-			rules: {
-				'react-hooks/exhaustive-deps': 'error',
 			},
 		},
 		{
@@ -443,7 +423,12 @@ module.exports = {
 			},
 		},
 		{
-			files: [ 'bin/**/*.js', 'bin/**/*.mjs', 'packages/env/**' ],
+			files: [
+				'bin/**/*.js',
+				'bin/**/*.mjs',
+				'packages/env/**',
+				'packages/theme/bin/**/*.[tj]s?(x)',
+			],
 			rules: {
 				'no-console': 'off',
 			},
@@ -455,9 +440,24 @@ module.exports = {
 				'jsdoc/valid-types': 'off',
 			},
 		},
+		// Progressively opting in to stricter rules for enforcing file
+		// extensions matching the presence of JSX syntax. This should be
+		// expanded and eventually enforced on all files.
 		{
 			files: [
-				'**/@(storybook|stories)/*',
+				'**/@(storybook|stories)/**',
+				'packages/components/src/**/*.tsx',
+			],
+			rules: {
+				'react/jsx-filename-extension': [
+					'error',
+					{ extensions: [ '.jsx', '.tsx' ] },
+				],
+			},
+		},
+		{
+			files: [
+				'**/@(storybook|stories)/**',
 				'packages/components/src/**/*.tsx',
 			],
 			rules: {
@@ -563,6 +563,7 @@ module.exports = {
 		{
 			files: [ 'packages/interactivity*/src/**' ],
 			rules: {
+				'react-compiler/react-compiler': 'off',
 				'react/react-in-jsx-scope': 'error',
 			},
 		},

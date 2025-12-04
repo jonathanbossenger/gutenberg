@@ -19,9 +19,17 @@
 		"onlyIncludeCurrentPage": {
 			"type": "boolean",
 			"default": false
+		},
+		"maxLevel": {
+			"type": "number"
+		},
+		"ordered": {
+			"type": "boolean",
+			"default": true
 		}
 	},
 	"supports": {
+		"ariaLabel": true,
 		"html": false,
 		"color": {
 			"text": true,
@@ -62,6 +70,5 @@
 			}
 		}
 	},
-	"example": {},
 	"style": "wp-block-table-of-contents"
 }

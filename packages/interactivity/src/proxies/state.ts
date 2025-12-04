@@ -36,7 +36,7 @@ const proxyToProps: WeakMap<
 > = new WeakMap();
 
 /**
- *  Checks wether a {@link PropSignal | `PropSignal`} instance exists for the
+ *  Checks whether a {@link PropSignal | `PropSignal`} instance exists for the
  *  given property in the passed proxy.
  *
  * @param proxy Proxy of a state object or array.
@@ -98,6 +98,8 @@ const objToIterable = new WeakMap< object, Signal< number > >();
  */
 let peeking = false;
 
+export const PENDING_GETTER = Symbol( 'PENDING_GETTER' );
+
 /**
  * Handlers for reactive objects and arrays in the state.
  */
@@ -121,6 +123,10 @@ const stateHandlers: ProxyHandler< object > = {
 		const desc = Object.getOwnPropertyDescriptor( target, key );
 		const prop = getPropSignal( receiver, key, desc );
 		const result = prop.getComputed().value;
+
+		if ( result === PENDING_GETTER ) {
+			throw PENDING_GETTER;
+		}
 
 		/*
 		 * Check if the property is a synchronous function. If it is, set the
@@ -241,7 +247,9 @@ const stateHandlers: ProxyHandler< object > = {
 export const proxifyState = < T extends object >(
 	namespace: string,
 	obj: T
-): T => createProxy( namespace, obj, stateHandlers ) as T;
+): T => {
+	return createProxy( namespace, obj, stateHandlers ) as T;
+};
 
 /**
  * Reads the value of the specified property without subscribing to it.
@@ -275,55 +283,86 @@ const deepMergeRecursive = (
 	source: any,
 	override: boolean = true
 ) => {
-	if ( isPlainObject( target ) && isPlainObject( source ) ) {
-		let hasNewKeys = false;
-		for ( const key in source ) {
-			const isNew = ! ( key in target );
-			hasNewKeys = hasNewKeys || isNew;
+	// If target is not a plain object and the source is, we don't need to merge
+	// them because the source will be used as the new value of the target.
+	if ( ! ( isPlainObject( target ) && isPlainObject( source ) ) ) {
+		return;
+	}
 
-			const desc = Object.getOwnPropertyDescriptor( source, key );
-			if (
-				typeof desc?.get === 'function' ||
-				typeof desc?.set === 'function'
-			) {
-				if ( override || isNew ) {
-					Object.defineProperty( target, key, {
-						...desc,
-						configurable: true,
-						enumerable: true,
-					} );
+	let hasNewKeys = false;
 
-					const proxy = getProxyFromObject( target );
-					if ( desc?.get && proxy && hasPropSignal( proxy, key ) ) {
-						const propSignal = getPropSignal( proxy, key );
-						propSignal.setGetter( desc.get );
-					}
-				}
-			} else if ( isPlainObject( source[ key ] ) ) {
-				if ( isNew ) {
-					target[ key ] = {};
-				}
+	for ( const key in source ) {
+		const isNew = ! ( key in target );
+		hasNewKeys = hasNewKeys || isNew;
 
-				deepMergeRecursive( target[ key ], source[ key ], override );
-			} else if ( override || isNew ) {
-				Object.defineProperty( target, key, desc! );
+		const desc = Object.getOwnPropertyDescriptor( source, key )!;
+		const proxy = getProxyFromObject( target );
+		const propSignal =
+			!! proxy &&
+			hasPropSignal( proxy, key ) &&
+			getPropSignal( proxy, key );
 
-				const proxy = getProxyFromObject( target );
-				if ( desc?.value && proxy && hasPropSignal( proxy, key ) ) {
-					const propSignal = getPropSignal( proxy, key );
-					propSignal.setValue( desc.value );
+		// Handle getters and setters
+		if (
+			typeof desc.get === 'function' ||
+			typeof desc.set === 'function'
+		) {
+			if ( override || isNew ) {
+				// Because we are setting a getter or setter, we need to use
+				// Object.defineProperty to define the property on the target object.
+				Object.defineProperty( target, key, {
+					...desc,
+					configurable: true,
+					enumerable: true,
+				} );
+				// Update the getter in the property signal if it exists
+				if ( desc.get && propSignal ) {
+					propSignal.setPendingGetter( desc.get );
 				}
 			}
-		}
 
-		if ( hasNewKeys && objToIterable.has( target ) ) {
-			objToIterable.get( target )!.value++;
+			// Handle nested objects
+		} else if ( isPlainObject( source[ key ] ) ) {
+			const targetValue = Object.getOwnPropertyDescriptor( target, key )
+				?.value;
+			if ( isNew || ( override && ! isPlainObject( targetValue ) ) ) {
+				// Create a new object if the property is new or needs to be overridden
+				target[ key ] = {};
+				if ( propSignal ) {
+					// Create a new proxified state for the nested object
+					const ns = getNamespaceFromProxy( proxy );
+					propSignal.setValue(
+						proxifyState( ns, target[ key ] as Object )
+					);
+				}
+				deepMergeRecursive( target[ key ], source[ key ], override );
+			}
+			// Both target and source are plain objects, merge them recursively
+			else if ( isPlainObject( targetValue ) ) {
+				deepMergeRecursive( target[ key ], source[ key ], override );
+			}
+
+			// Handle primitive values and non-plain objects
+		} else if ( override || isNew ) {
+			Object.defineProperty( target, key, desc );
+			if ( propSignal ) {
+				const { value } = desc;
+				const ns = getNamespaceFromProxy( proxy );
+				// Proxify the value if necessary before setting it in the signal
+				propSignal.setValue(
+					shouldProxy( value ) ? proxifyState( ns, value ) : value
+				);
+			}
 		}
+	}
+
+	if ( hasNewKeys && objToIterable.has( target ) ) {
+		objToIterable.get( target )!.value++;
 	}
 };
 
 /**
- * Recursively update prop values inside the passed `target` and nested plain
+ * Recursively updates prop values inside the passed `target` and nested plain
  * objects, using the values present in `source`. References to plain objects
  * are kept, only updating props containing primitives or arrays. Arrays are
  * replaced instead of merged or concatenated.

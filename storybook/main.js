@@ -2,6 +2,7 @@
  * External dependencies
  */
 const path = require( 'path' );
+const DefinePlugin = require( 'webpack' ).DefinePlugin;
 
 /**
  * WordPress dependencies
@@ -27,13 +28,19 @@ const scssLoaders = ( { isLazy } ) => [
 ];
 
 const stories = [
-	process.env.NODE_ENV !== 'test' && './stories/**/*.story.@(js|tsx)',
+	process.env.NODE_ENV !== 'test' && './stories/**/*.story.@(jsx|tsx)',
 	process.env.NODE_ENV !== 'test' && './stories/**/*.mdx',
-	'../packages/block-editor/src/**/stories/*.story.@(js|tsx|mdx)',
-	'../packages/components/src/**/stories/*.story.@(js|tsx|mdx)',
-	'../packages/icons/src/**/stories/*.story.@(js|tsx|mdx)',
-	'../packages/edit-site/src/**/stories/*.story.@(js|tsx|mdx)',
-	'../packages/dataviews/src/**/stories/*.story.@(js|tsx|mdx)',
+	'../packages/block-editor/src/**/stories/*.story.@(js|jsx|tsx|mdx)',
+	'../packages/components/src/**/stories/*.story.@(jsx|tsx)',
+	'../packages/components/src/**/stories/*.mdx',
+	'../packages/icons/src/**/stories/*.story.@(jsx|tsx|mdx)',
+	'../packages/edit-site/src/**/stories/*.story.@(jsx|tsx|mdx)',
+	'../packages/global-styles-ui/src/**/stories/*.story.@(jsx|tsx|mdx)',
+	'../packages/dataviews/src/**/stories/*.story.@(jsx|tsx|mdx)',
+	'../packages/fields/src/**/stories/*.story.@(jsx|tsx|mdx)',
+	'../packages/image-cropper/src/**/stories/*.story.@(js|tsx|mdx)',
+	'../packages/theme/src/**/stories/*.story.@(tsx|mdx)',
+	'../packages/ui/src/**/stories/*.story.@(ts|tsx)',
 ].filter( Boolean );
 
 module.exports = {
@@ -41,6 +48,7 @@ module.exports = {
 		disableTelemetry: true,
 	},
 	stories,
+	staticDirs: [ './static' ],
 	addons: [
 		{
 			name: '@storybook/addon-docs',
@@ -51,20 +59,19 @@ module.exports = {
 		'@storybook/addon-a11y',
 		'@storybook/addon-toolbars',
 		'@storybook/addon-actions',
+		'@storybook/addon-interactions',
+		'@storybook/addon-webpack5-compiler-babel',
 		'storybook-source-link',
 		'@geometricpanda/storybook-addon-badges',
+		'./addons/design-system-theme/register',
 	],
 	framework: {
 		name: '@storybook/react-webpack5',
 		options: {},
 	},
-	features: {
-		babelModeV7: true,
-		emotionAlias: false,
-		storyStoreV7: true,
-	},
-	docs: {
-		autodocs: true,
+	docs: {},
+	typescript: {
+		reactDocgen: 'react-docgen-typescript',
 	},
 	webpackFinal: async ( config ) => {
 		return {
@@ -73,6 +80,10 @@ module.exports = {
 				...config.module,
 				rules: [
 					...config.module.rules,
+					{
+						test: /\.md$/,
+						type: 'asset/source',
+					},
 					{
 						test: /\/stories\/.+\.story\.(j|t)sx?$/,
 						use: [
@@ -97,7 +108,6 @@ module.exports = {
 						test: /\.scss$/,
 						exclude: /\.lazy\.scss$/,
 						use: scssLoaders( { isLazy: false } ),
-						include: path.resolve( __dirname ),
 					},
 					{
 						test: /\.lazy\.scss$/,
@@ -106,6 +116,15 @@ module.exports = {
 					},
 				],
 			},
+			plugins: [
+				...config.plugins,
+				new DefinePlugin( {
+					// Ensures that `@wordpress/warning` can properly detect dev mode.
+					'globalThis.SCRIPT_DEBUG': JSON.stringify(
+						process.env.NODE_ENV === 'development'
+					),
+				} ),
+			],
 		};
 	},
 };

@@ -1,3 +1,5 @@
+@use "@wordpress/base-styles/variables" as *;
+
 .editor-post-panel__row {
 	width: 100%;
 	min-height: $grid-unit-40;
@@ -28,7 +30,9 @@
 		white-space: normal;
 		text-wrap: balance; // Fallback for Safari.
 		text-wrap: pretty;
+		height: auto;
 		min-height: $button-size-compact;
+		font-weight: $font-weight-regular;
 	}
 
 	.components-dropdown {

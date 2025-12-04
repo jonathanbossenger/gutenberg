@@ -2,6 +2,7 @@
  * External dependencies
  */
 import clsx from 'clsx';
+import fastDeepEqual from 'fast-deep-equal/es6';
 
 /**
  * WordPress dependencies
@@ -20,7 +21,7 @@ import {
 	removeFormat,
 } from '@wordpress/rich-text';
 import { Popover } from '@wordpress/components';
-import { store as blocksStore } from '@wordpress/blocks';
+import { getBlockBindingsSource } from '@wordpress/blocks';
 import deprecated from '@wordpress/deprecated';
 import { __, sprintf } from '@wordpress/i18n';
 
@@ -39,12 +40,14 @@ import FormatEdit from './format-edit';
 import { getAllowedFormats } from './utils';
 import { Content, valueToHTMLString } from './content';
 import { withDeprecations } from './with-deprecations';
-import { unlock } from '../../lock-unlock';
-import { canBindBlock } from '../../hooks/use-bindings-attributes';
 import BlockContext from '../block-context';
+import { PrivateBlockContext } from '../block-list/private-block-context';
 
 export const keyboardShortcutContext = createContext();
+keyboardShortcutContext.displayName = 'keyboardShortcutContext';
+
 export const inputEventContext = createContext();
+inputEventContext.displayName = 'inputEventContext';
 
 const instanceIdKey = Symbol( 'instanceId' );
 
@@ -122,9 +125,11 @@ export function RichTextWrapper(
 	const instanceId = useInstanceId( RichTextWrapper );
 	const anchorRef = useRef();
 	const context = useBlockEditContext();
-	const { clientId, isSelected: isBlockSelected, name: blockName } = context;
+	const { clientId, isSelected: isBlockSelected } = context;
 	const blockBindings = context[ blockBindingsKey ];
 	const blockContext = useContext( BlockContext );
+	const { bindableAttributes } = useContext( PrivateBlockContext );
+	const registry = useRegistry();
 	const selector = ( select ) => {
 		// Avoid subscribing to the block editor store if the block is not
 		// selected.
@@ -132,7 +137,7 @@ export function RichTextWrapper(
 			return { isSelected: false };
 		}
 
-		const { getSelectionStart, getSelectionEnd } =
+		const { getSelectionStart, getSelectionEnd, getBlockEditingMode } =
 			select( blockEditorStore );
 		const selectionStart = getSelectionStart();
 		const selectionEnd = getSelectionEnd();
@@ -154,57 +159,108 @@ export function RichTextWrapper(
 			selectionStart: isSelected ? selectionStart.offset : undefined,
 			selectionEnd: isSelected ? selectionEnd.offset : undefined,
 			isSelected,
+			isContentOnly: getBlockEditingMode( clientId ) === 'contentOnly',
 		};
 	};
-	const { selectionStart, selectionEnd, isSelected } = useSelect( selector, [
-		clientId,
-		identifier,
-		instanceId,
-		originalIsSelected,
-		isBlockSelected,
-	] );
+	const { selectionStart, selectionEnd, isSelected, isContentOnly } =
+		useSelect( selector, [
+			clientId,
+			identifier,
+			instanceId,
+			originalIsSelected,
+			isBlockSelected,
+		] );
 
-	const { disableBoundBlock, bindingsPlaceholder } = useSelect(
+	const { disableBoundBlock, bindingsPlaceholder, bindingsLabel } = useSelect(
 		( select ) => {
-			if (
-				! blockBindings?.[ identifier ] ||
-				! canBindBlock( blockName )
-			) {
+			if ( ! blockBindings?.[ identifier ] || ! bindableAttributes ) {
 				return {};
 			}
 
 			const relatedBinding = blockBindings[ identifier ];
-			const { getBlockBindingsSource } = unlock( select( blocksStore ) );
 			const blockBindingsSource = getBlockBindingsSource(
 				relatedBinding.source
 			);
+			const blockBindingsContext = {};
+			if ( blockBindingsSource?.usesContext?.length ) {
+				for ( const key of blockBindingsSource.usesContext ) {
+					blockBindingsContext[ key ] = blockContext[ key ];
+				}
+			}
 
 			const _disableBoundBlock =
 				! blockBindingsSource?.canUserEditValue?.( {
 					select,
-					context: blockContext,
+					context: blockBindingsContext,
 					args: relatedBinding.args,
 				} );
 
+			// Don't modify placeholders if value is not empty.
+			if ( adjustedValue.length > 0 ) {
+				return {
+					disableBoundBlock: _disableBoundBlock,
+					// Null values will make them fall back to the default behavior.
+					bindingsPlaceholder: null,
+					bindingsLabel: null,
+				};
+			}
+
+			const { getBlockAttributes } = select( blockEditorStore );
+			const blockAttributes = getBlockAttributes( clientId );
+			let clientSideFieldLabel = null;
+			if ( blockBindingsSource?.getFieldsList ) {
+				const fieldsItems = blockBindingsSource.getFieldsList( {
+					select,
+					context: blockBindingsContext,
+				} );
+				clientSideFieldLabel = fieldsItems?.find( ( item ) =>
+					fastDeepEqual( item.args, relatedBinding?.args )
+				)?.label;
+			}
+
+			const bindingKey =
+				clientSideFieldLabel ?? blockBindingsSource?.label;
+
 			const _bindingsPlaceholder = _disableBoundBlock
+				? bindingKey
+				: sprintf(
+						/* translators: %s: connected field label or source label */
+						__( 'Add %s' ),
+						bindingKey
+				  );
+			const _bindingsLabel = _disableBoundBlock
 				? relatedBinding?.args?.key || blockBindingsSource?.label
 				: sprintf(
 						/* translators: %s: source label or key */
-						__( 'Add %s' ),
+						__( 'Empty %s; start writing to edit its value' ),
 						relatedBinding?.args?.key || blockBindingsSource?.label
 				  );
 
 			return {
 				disableBoundBlock: _disableBoundBlock,
 				bindingsPlaceholder:
-					( ! adjustedValue || adjustedValue.length === 0 ) &&
-					_bindingsPlaceholder,
+					blockAttributes?.placeholder || _bindingsPlaceholder,
+				bindingsLabel: _bindingsLabel,
 			};
 		},
-		[ blockBindings, identifier, blockName, blockContext, adjustedValue ]
+		[
+			blockBindings,
+			identifier,
+			bindableAttributes,
+			adjustedValue,
+			clientId,
+			blockContext,
+		]
 	);
+	const isInsidePatternOverrides = !! blockContext?.[ 'pattern/overrides' ];
+	const hasOverrideEnabled =
+		blockBindings?.__default?.source === 'core/pattern-overrides';
 
-	const shouldDisableEditing = readOnly || disableBoundBlock;
+	const shouldDisableForPattern =
+		isInsidePatternOverrides && ! hasOverrideEnabled;
+
+	const shouldDisableEditing =
+		readOnly || disableBoundBlock || shouldDisableForPattern;
 
 	const { getSelectionStart, getSelectionEnd, getBlockRootClientId } =
 		useSelect( blockEditorStore );
@@ -284,8 +340,9 @@ export function RichTextWrapper(
 	} = useFormatTypes( {
 		clientId,
 		identifier,
-		withoutInteractiveFormatting,
 		allowedFormats: adjustedAllowedFormats,
+		withoutInteractiveFormatting,
+		disableNoneEssentialFormatting: isContentOnly,
 	} );
 
 	function addEditorOnlyFormats( value ) {
@@ -356,22 +413,9 @@ export function RichTextWrapper(
 	const inputEvents = useRef( new Set() );
 
 	function onFocus() {
-		let element = anchorRef.current;
-
-		if ( ! element ) {
-			return;
-		}
-
-		// Writing flow might be editable, so we should make sure focus goes to
-		// the root editable element.
-		while ( element.parentElement?.isContentEditable ) {
-			element = element.parentElement;
-		}
-
-		element.focus();
+		anchorRef.current?.focus();
 	}
 
-	const registry = useRegistry();
 	const TagName = tagName;
 	return (
 		<>
@@ -405,8 +449,13 @@ export function RichTextWrapper(
 				aria-multiline={ ! disableLineBreaks }
 				aria-readonly={ shouldDisableEditing }
 				{ ...props }
+				// Unset draggable (coming from block props) for contentEditable
+				// elements because it will interfere with multi block selection
+				// when the contentEditable and draggable elements are the same
+				// element.
+				draggable={ undefined }
 				aria-label={
-					bindingsPlaceholder || props[ 'aria-label' ] || placeholder
+					bindingsLabel || props[ 'aria-label' ] || placeholder
 				}
 				{ ...autocompleteProps }
 				ref={ useMergeRefs( [
@@ -520,6 +569,7 @@ const PublicForwardedRichTextContainer = forwardRef( ( props, ref ) => {
 		} = removeNativeProps( props );
 		return (
 			<Tag
+				ref={ ref }
 				{ ...contentProps }
 				dangerouslySetInnerHTML={ {
 					__html: valueToHTMLString( value, multiline ),

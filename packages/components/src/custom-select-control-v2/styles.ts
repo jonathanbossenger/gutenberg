@@ -120,6 +120,7 @@ export const SelectPopover = styled( Ariakit.SelectPopover )`
 	background-color: ${ COLORS.theme.background };
 	border-radius: ${ CONFIG.radiusSmall };
 	border: 1px solid ${ COLORS.theme.foreground };
+	box-shadow: ${ CONFIG.elevationMedium };
 
 	/* z-index(".components-popover") */
 	z-index: 1000000;
@@ -212,6 +213,7 @@ export const SelectedItemCheck = styled( Ariakit.SelectItemCheck )`
 	display: flex;
 	align-items: center;
 	margin-inline-start: ${ space( 2 ) };
+	fill: currentColor;
 
 	// Keep the checkmark vertically aligned at the top. Since the item text has a
 	// 28px line height and the checkmark is 24px tall, a (28-24)/2 = 2px margin

@@ -92,6 +92,7 @@ const MySelectControl = () => {
 				{ label: 'Small', value: '25%' },
 			] }
 			onChange={ ( newSize ) => setSize( newSize ) }
+			__next40pxDefaultSize
 			__nextHasNoMarginBottom
 		/>
 	);
@@ -103,7 +104,7 @@ Render a user interface to select multiple users from a list.
 ```jsx
 <SelectControl
 	multiple
-	label={ __( 'Select some users:' ) }
+	label={ __( 'User' ) }
 	value={ this.state.users } // e.g: value = [ 'a', 'c' ]
 	onChange={ ( users ) => {
 		this.setState( { users } );
@@ -114,6 +115,7 @@ Render a user interface to select multiple users from a list.
 		{ value: 'b', label: 'User B' },
 		{ value: 'c', label: 'User c' },
 	] }
+	__next40pxDefaultSize
 	__nextHasNoMarginBottom
 />
 ```
@@ -126,9 +128,10 @@ const [ item, setItem ] = useState( '' );
 // ...
 
 <SelectControl
-    label={ __( 'Select an item:' ) }
+    label={ __( 'My dinosaur' ) }
     value={ item } // e.g: value = 'a'
     onChange={ ( selection ) => { setItem( selection ) } }
+    __next40pxDefaultSize
     __nextHasNoMarginBottom
 >
 	<optgroup label="Theropods">

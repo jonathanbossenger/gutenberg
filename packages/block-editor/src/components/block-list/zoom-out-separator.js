@@ -13,6 +13,7 @@ import {
 import { useReducedMotion } from '@wordpress/compose';
 import { useSelect } from '@wordpress/data';
 import { useState } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
@@ -29,14 +30,18 @@ export function ZoomOutSeparator( {
 	const {
 		sectionRootClientId,
 		sectionClientIds,
-		blockInsertionPoint,
+		insertionPoint,
 		blockInsertionPointVisible,
+		blockInsertionPoint,
+		blocksBeingDragged,
 	} = useSelect( ( select ) => {
 		const {
-			getBlockInsertionPoint,
+			getInsertionPoint,
 			getBlockOrder,
-			isBlockInsertionPointVisible,
 			getSectionRootClientId,
+			isBlockInsertionPointVisible,
+			getBlockInsertionPoint,
+			getDraggedBlockClientIds,
 		} = unlock( select( blockEditorStore ) );
 
 		const root = getSectionRootClientId();
@@ -44,9 +49,10 @@ export function ZoomOutSeparator( {
 		return {
 			sectionRootClientId: root,
 			sectionClientIds: sectionRootClientIds,
-			blockOrder: getBlockOrder( root ),
+			insertionPoint: getInsertionPoint(),
 			blockInsertionPoint: getBlockInsertionPoint(),
 			blockInsertionPointVisible: isBlockInsertionPointVisible(),
+			blocksBeingDragged: getDraggedBlockClientIds(),
 		};
 	}, [] );
 
@@ -67,31 +73,72 @@ export function ZoomOutSeparator( {
 		return null;
 	}
 
+	const hasTopInsertionPoint =
+		insertionPoint?.index === 0 &&
+		clientId === sectionClientIds[ insertionPoint.index ];
+	const hasBottomInsertionPoint =
+		insertionPoint &&
+		insertionPoint.hasOwnProperty( 'index' ) &&
+		clientId === sectionClientIds[ insertionPoint.index - 1 ];
+
+	// We want to show the zoom out separator in either of these conditions:
+	// 1. If the inserter has an insertion index set
+	// 2. We are dragging a pattern over an insertion point
 	if ( position === 'top' ) {
 		isVisible =
-			blockInsertionPointVisible &&
-			blockInsertionPoint.index === 0 &&
-			clientId === sectionClientIds[ blockInsertionPoint.index ];
+			hasTopInsertionPoint ||
+			( blockInsertionPointVisible &&
+				blockInsertionPoint.index === 0 &&
+				clientId === sectionClientIds[ blockInsertionPoint.index ] );
 	}
 
 	if ( position === 'bottom' ) {
 		isVisible =
-			blockInsertionPointVisible &&
-			clientId === sectionClientIds[ blockInsertionPoint.index - 1 ];
+			hasBottomInsertionPoint ||
+			( blockInsertionPointVisible &&
+				clientId ===
+					sectionClientIds[ blockInsertionPoint.index - 1 ] );
+	}
+
+	const blockBeingDraggedClientId = blocksBeingDragged[ 0 ];
+
+	const isCurrentBlockBeingDragged = blocksBeingDragged.includes( clientId );
+
+	const blockBeingDraggedIndex = sectionClientIds.indexOf(
+		blockBeingDraggedClientId
+	);
+	const blockBeingDraggedPreviousSiblingClientId =
+		blockBeingDraggedIndex > 0
+			? sectionClientIds[ blockBeingDraggedIndex - 1 ]
+			: null;
+
+	const isCurrentBlockPreviousSiblingOfBlockBeingDragged =
+		blockBeingDraggedPreviousSiblingClientId === clientId;
+
+	// The separators are visually top/bottom of the block, but in actual fact
+	// the "top" separator is the "bottom" separator of the previous block.
+	// Therefore, this logic hides the separator if the current block is being dragged
+	// or if the current block is the previous sibling of the block being dragged.
+	if (
+		isCurrentBlockBeingDragged ||
+		isCurrentBlockPreviousSiblingOfBlockBeingDragged
+	) {
+		isVisible = false;
 	}
 
 	return (
 		<AnimatePresence>
 			{ isVisible && (
 				<motion.div
-					as="button"
-					layout={ ! isReducedMotion }
 					initial={ { height: 0 } }
-					animate={ { height: '120px' } }
+					animate={ {
+						// Use a height equal to that of the zoom out frame size.
+						height: 'calc(1 * var(--wp-block-editor-iframe-zoom-out-frame-size) / var(--wp-block-editor-iframe-zoom-out-scale)',
+					} }
 					exit={ { height: 0 } }
 					transition={ {
 						type: 'tween',
-						duration: 0.2,
+						duration: isReducedMotion ? 0 : 0.2,
 						ease: [ 0.6, 0, 0.4, 1 ],
 					} }
 					className={ clsx(
@@ -103,7 +150,20 @@ export function ZoomOutSeparator( {
 					data-is-insertion-point="true"
 					onDragOver={ () => setIsDraggedOver( true ) }
 					onDragLeave={ () => setIsDraggedOver( false ) }
-				></motion.div>
+				>
+					<motion.div
+						initial={ { opacity: 0 } }
+						animate={ { opacity: 1 } }
+						exit={ { opacity: 0, transition: { delay: -0.125 } } }
+						transition={ {
+							ease: 'linear',
+							duration: 0.1,
+							delay: 0.125,
+						} }
+					>
+						{ __( 'Drop pattern.' ) }
+					</motion.div>
+				</motion.div>
 			) }
 		</AnimatePresence>
 	);

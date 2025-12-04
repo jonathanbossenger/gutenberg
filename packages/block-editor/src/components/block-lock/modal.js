@@ -24,7 +24,7 @@ import useBlockDisplayInformation from '../use-block-display-information';
 import { store as blockEditorStore } from '../../store';
 
 // Entity based blocks which allow edit locking
-const ALLOWS_EDIT_LOCKING = [ 'core/block', 'core/navigation' ];
+const ALLOWS_EDIT_LOCKING = [ 'core/navigation' ];
 
 function getTemplateLockValue( lock ) {
 	// Prevents all operations.
@@ -42,7 +42,8 @@ function getTemplateLockValue( lock ) {
 
 export default function BlockLockModal( { clientId, onClose } ) {
 	const [ lock, setLock ] = useState( { move: false, remove: false } );
-	const { canEdit, canMove, canRemove } = useBlockLock( clientId );
+	const { isEditLocked, isMoveLocked, isRemoveLocked } =
+		useBlockLock( clientId );
 	const { allowsEditLocking, templateLock, hasTemplateLock } = useSelect(
 		( select ) => {
 			const { getBlockName, getBlockAttributes } =
@@ -66,11 +67,11 @@ export default function BlockLockModal( { clientId, onClose } ) {
 
 	useEffect( () => {
 		setLock( {
-			move: ! canMove,
-			remove: ! canRemove,
-			...( allowsEditLocking ? { edit: ! canEdit } : {} ),
+			move: isMoveLocked,
+			remove: isRemoveLocked,
+			...( allowsEditLocking ? { edit: isEditLocked } : {} ),
 		} );
-	}, [ canEdit, canMove, canRemove, allowsEditLocking ] );
+	}, [ isEditLocked, isMoveLocked, isRemoveLocked, allowsEditLocking ] );
 
 	const isAllChecked = Object.values( lock ).every( Boolean );
 	const isMixed = Object.values( lock ).some( Boolean ) && ! isAllChecked;
@@ -84,6 +85,7 @@ export default function BlockLockModal( { clientId, onClose } ) {
 			) }
 			overlayClassName="block-editor-block-lock-modal"
 			onRequestClose={ onClose }
+			size="small"
 		>
 			<form
 				onSubmit={ ( event ) => {
@@ -99,9 +101,7 @@ export default function BlockLockModal( { clientId, onClose } ) {
 			>
 				<fieldset className="block-editor-block-lock-modal__options">
 					<legend>
-						{ __(
-							'Choose specific attributes to restrict or lock all available options.'
-						) }
+						{ __( 'Select the features you want to lock' ) }
 					</legend>
 					{ /*
 					 * Disable reason: The `list` ARIA role is redundant but
@@ -137,7 +137,7 @@ export default function BlockLockModal( { clientId, onClose } ) {
 									<li className="block-editor-block-lock-modal__checklist-item">
 										<CheckboxControl
 											__nextHasNoMarginBottom
-											label={ __( 'Restrict editing' ) }
+											label={ __( 'Lock editing' ) }
 											checked={ !! lock.edit }
 											onChange={ ( edit ) =>
 												setLock( ( prevLock ) => ( {
@@ -159,7 +159,7 @@ export default function BlockLockModal( { clientId, onClose } ) {
 								<li className="block-editor-block-lock-modal__checklist-item">
 									<CheckboxControl
 										__nextHasNoMarginBottom
-										label={ __( 'Disable movement' ) }
+										label={ __( 'Lock movement' ) }
 										checked={ lock.move }
 										onChange={ ( move ) =>
 											setLock( ( prevLock ) => ( {
@@ -178,7 +178,7 @@ export default function BlockLockModal( { clientId, onClose } ) {
 								<li className="block-editor-block-lock-modal__checklist-item">
 									<CheckboxControl
 										__nextHasNoMarginBottom
-										label={ __( 'Prevent removal' ) }
+										label={ __( 'Lock removal' ) }
 										checked={ lock.remove }
 										onChange={ ( remove ) =>
 											setLock( ( prevLock ) => ( {
