@@ -36,7 +36,9 @@ function useNavigateToPreviousEntityRecord() {
 export function useSpecificEditorSettings() {
 	const { query } = useLocation();
 	const { canvas = 'view' } = query;
-	const onNavigateToEntityRecord = useNavigateToEntityRecord();
+	const [ onNavigateToEntityRecord, initialBlockSelection ] =
+		useNavigateToEntityRecord();
+
 	const { settings, currentPostIsTrashed } = useSelect( ( select ) => {
 		const { getSettings } = select( editSiteStore );
 		const { getCurrentPostAttribute } = select( editorStore );
@@ -74,6 +76,7 @@ export function useSpecificEditorSettings() {
 			onNavigateToEntityRecord,
 			onNavigateToPreviousEntityRecord,
 			isPreviewMode: canvas === 'view',
+			initialBlockSelection,
 		};
 	}, [
 		settings,
@@ -81,6 +84,7 @@ export function useSpecificEditorSettings() {
 		currentPostIsTrashed,
 		onNavigateToEntityRecord,
 		onNavigateToPreviousEntityRecord,
+		initialBlockSelection,
 	] );
 
 	return defaultEditorSettings;
