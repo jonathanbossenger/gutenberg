@@ -283,7 +283,6 @@ module.exports = {
 						'SearchControl',
 						'SelectControl',
 						'ToggleControl',
-						'ToggleGroupControl',
 						'TreeSelect',
 					].map( ( componentName ) => ( {
 						selector: `JSXOpeningElement[name.name="${ componentName }"]:not(:has(JSXAttribute[name.name="__nextHasNoMarginBottom"]))`,
