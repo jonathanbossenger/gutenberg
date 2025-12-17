@@ -941,12 +941,6 @@ async function generatePagesPhp( pageData, replacements ) {
 				templateReplacements
 			),
 		] );
-
-		// Generate empty loader.js (dummy module for dependencies)
-		await writeFile(
-			path.join( BUILD_DIR, 'pages', page.slug, 'loader.js' ),
-			'// Empty module loader for page dependencies\n'
-		);
 	} );
 
 	await Promise.all( pageGenerationPromises );
@@ -1421,8 +1415,10 @@ async function buildAllRoutes() {
 
 /**
  * Main build function.
+ *
+ * @param {string?} baseUrlExpression
  */
-async function buildAll() {
+async function buildAll( baseUrlExpression ) {
 	console.log( '🔨 Building packages...\n' );
 
 	const startTime = Date.now();
@@ -1577,7 +1573,10 @@ async function buildAll() {
 	}
 
 	console.log( '\n📄 Generating PHP registration files...\n' );
-	const phpReplacements = await getPhpReplacements( ROOT_DIR );
+	const phpReplacements = await getPhpReplacements(
+		ROOT_DIR,
+		baseUrlExpression
+	);
 	await Promise.all( [
 		generateMainIndexPhp( phpReplacements ),
 		generateModuleRegistrationPhp( modules, phpReplacements ),
@@ -1871,10 +1870,16 @@ async function main() {
 				short: 'w',
 				default: false,
 			},
+			'base-url': {
+				type: 'string',
+				default: "plugins_url( 'build', dirname( __FILE__ ) )",
+			},
 		},
 	} );
 
-	await buildAll();
+	const baseUrlExpression = values[ 'base-url' ];
+
+	await buildAll( baseUrlExpression );
 
 	if ( values.watch ) {
 		console.log( '\n👀 Watching for changes...\n' );
