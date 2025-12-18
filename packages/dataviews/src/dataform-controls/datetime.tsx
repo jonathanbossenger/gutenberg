@@ -162,7 +162,6 @@ function CalendarDateTimeControl< Item >( {
 
 	return (
 		<BaseControl
-			__nextHasNoMarginBottom
 			id={ id }
 			label={ displayLabel }
 			help={ description }
