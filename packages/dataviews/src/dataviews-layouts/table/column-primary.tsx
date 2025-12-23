@@ -6,10 +6,7 @@ import type { ComponentProps, ReactElement } from 'react';
 /**
  * WordPress dependencies
  */
-import {
-	__experimentalHStack as HStack,
-	__experimentalVStack as VStack,
-} from '@wordpress/components';
+import { Stack } from '@wordpress/ui';
 
 /**
  * Internal dependencies
@@ -41,7 +38,7 @@ function ColumnPrimary< Item >( {
 	isItemClickable: ( item: Item ) => boolean;
 } ) {
 	return (
-		<HStack spacing={ 3 } alignment="flex-start" justify="flex-start">
+		<Stack direction="row" gap="sm" align="flex-start" justify="flex-start">
 			{ mediaField && (
 				<ItemClickWrapper
 					item={ item }
@@ -64,9 +61,9 @@ function ColumnPrimary< Item >( {
 					/>
 				</ItemClickWrapper>
 			) }
-			<VStack
-				spacing={ 0 }
-				alignment="flex-start"
+			<Stack
+				direction="column"
+				align="flex-start"
 				className="dataviews-view-table__primary-column-content"
 			>
 				{ titleField && (
@@ -91,8 +88,8 @@ function ColumnPrimary< Item >( {
 						field={ descriptionField }
 					/>
 				) }
-			</VStack>
-		</HStack>
+			</Stack>
+		</Stack>
 	);
 }
 

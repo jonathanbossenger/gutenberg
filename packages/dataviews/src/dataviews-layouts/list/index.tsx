@@ -8,8 +8,6 @@ import clsx from 'clsx';
  */
 import { useInstanceId, usePrevious } from '@wordpress/compose';
 import {
-	__experimentalHStack as HStack,
-	__experimentalVStack as VStack,
 	Button,
 	privateApis as componentsPrivateApis,
 	Spinner,
@@ -27,6 +25,7 @@ import {
 import { __, sprintf } from '@wordpress/i18n';
 import { moreVertical } from '@wordpress/icons';
 import { useRegistry } from '@wordpress/data';
+import { Stack } from '@wordpress/ui';
 
 /**
  * Internal dependencies
@@ -221,7 +220,11 @@ function ListItem< Item >( {
 		) : null;
 
 	const usedActions = eligibleActions?.length > 0 && (
-		<HStack spacing={ 3 } className="dataviews-view-list__item-actions">
+		<Stack
+			direction="row"
+			gap="sm"
+			className="dataviews-view-list__item-actions"
+		>
 			{ primaryAction && (
 				<PrimaryActionGridCell
 					idPrefix={ idPrefix }
@@ -271,7 +274,7 @@ function ListItem< Item >( {
 					) }
 				</div>
 			) }
-		</HStack>
+		</Stack>
 	);
 
 	return (
@@ -296,7 +299,10 @@ function ListItem< Item >( {
 			onMouseEnter={ handleHover }
 			onMouseLeave={ handleHover }
 		>
-			<HStack className="dataviews-view-list__item-wrapper" spacing={ 0 }>
+			<Stack
+				direction="row"
+				className="dataviews-view-list__item-wrapper"
+			>
 				<div role="gridcell">
 					<Composite.Item
 						id={ generateItemWrapperCompositeId( idPrefix ) }
@@ -307,21 +313,29 @@ function ListItem< Item >( {
 						onClick={ () => onSelect( item ) }
 					/>
 				</div>
-				<HStack spacing={ 3 } justify="start" alignment="flex-start">
+				<Stack
+					direction="row"
+					gap="sm"
+					justify="start"
+					align="flex-start"
+					style={ { flex: 1 } }
+				>
 					{ renderedMediaField }
-					<VStack
-						spacing={ 1 }
+					<Stack
+						direction="column"
+						gap="2xs"
 						className="dataviews-view-list__field-wrapper"
 					>
-						<HStack spacing={ 0 }>
+						<Stack direction="row" align="center">
 							<div
 								className="dataviews-title-field"
 								id={ labelId }
+								style={ { flex: 1 } }
 							>
 								{ renderedTitleField }
 							</div>
 							{ usedActions }
-						</HStack>
+						</Stack>
 						{ showDescription && descriptionField?.render && (
 							<div className="dataviews-view-list__field">
 								<descriptionField.render
@@ -354,9 +368,9 @@ function ListItem< Item >( {
 								</div>
 							) ) }
 						</div>
-					</VStack>
-				</HStack>
-			</HStack>
+					</Stack>
+				</Stack>
+			</Stack>
 		</Composite.Row>
 	);
 }
@@ -538,13 +552,18 @@ export default function ViewList< Item >( props: ViewListProps< Item > ) {
 				activeId={ activeCompositeId }
 				setActiveId={ setActiveCompositeId }
 			>
-				<VStack
-					spacing={ 4 }
+				<Stack
+					direction="column"
+					gap="md"
 					className={ clsx( 'dataviews-view-list', className ) }
 				>
 					{ Array.from( dataByGroup.entries() ).map(
 						( [ groupName, groupItems ] ) => (
-							<VStack key={ groupName } spacing={ 2 }>
+							<Stack
+								direction="column"
+								key={ groupName }
+								gap="xs"
+							>
 								<h3 className="dataviews-view-list__group-header">
 									{ view.groupBy?.showLabel === false
 										? groupName
@@ -579,10 +598,10 @@ export default function ViewList< Item >( props: ViewListProps< Item > ) {
 										/>
 									);
 								} ) }
-							</VStack>
+							</Stack>
 						)
 					) }
-				</VStack>
+				</Stack>
 			</Composite>
 		);
 	}

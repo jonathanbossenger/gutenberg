@@ -7,11 +7,8 @@ import deepMerge from 'deepmerge';
  * WordPress dependencies
  */
 import { useCallback, useMemo, useState } from '@wordpress/element';
-import {
-	Button,
-	__experimentalVStack as VStack,
-	privateApis,
-} from '@wordpress/components';
+import { Button, privateApis } from '@wordpress/components';
+import { Stack } from '@wordpress/ui';
 
 /**
  * Internal dependencies
@@ -1393,7 +1390,7 @@ const ValidationComponent = ( {
 
 	return (
 		<form>
-			<VStack alignment="left" spacing={ 8 }>
+			<Stack direction="column" align="start" gap="xl">
 				<DataForm< ValidatedItem >
 					data={ post }
 					fields={ _fields }
@@ -1414,7 +1411,7 @@ const ValidationComponent = ( {
 				>
 					Submit
 				</Button>
-			</VStack>
+			</Stack>
 		</form>
 	);
 };

@@ -6,14 +6,10 @@ import clsx from 'clsx';
 /**
  * WordPress dependencies
  */
-import {
-	__experimentalVStack as VStack,
-	__experimentalHStack as HStack,
-	Icon,
-	Tooltip,
-} from '@wordpress/components';
+import { Icon, Tooltip } from '@wordpress/components';
 import { useState, useContext } from '@wordpress/element';
 import { error as errorIcon } from '@wordpress/icons';
+import { Stack } from '@wordpress/ui';
 
 /**
  * Internal dependencies
@@ -174,13 +170,15 @@ export default function FormPanelField< Item >( {
 
 	const labelContent = showError ? (
 		<Tooltip text={ errorMessage } placement="top">
-			<HStack
+			<Stack
+				direction="row"
+				gap="xs"
 				className="dataforms-layouts-panel__field-label-error-content"
 				justify="flex-start"
 			>
 				<Icon icon={ errorIcon } size={ 16 } />
 				<>{ fieldLabel }</>
-			</HStack>
+			</Stack>
 		</Tooltip>
 	) : (
 		fieldLabel
@@ -213,7 +211,10 @@ export default function FormPanelField< Item >( {
 
 	if ( labelPosition === 'top' ) {
 		return (
-			<VStack className="dataforms-layouts-panel__field" spacing={ 0 }>
+			<Stack
+				direction="column"
+				className="dataforms-layouts-panel__field"
+			>
 				<div
 					className={ labelClassName }
 					style={ { paddingBottom: 0 } }
@@ -223,13 +224,17 @@ export default function FormPanelField< Item >( {
 				<div className="dataforms-layouts-panel__field-control">
 					{ renderedControl }
 				</div>
-			</VStack>
+			</Stack>
 		);
 	}
 
 	if ( labelPosition === 'none' ) {
 		return (
-			<HStack className="dataforms-layouts-panel__field dataforms-layouts-panel__field--label-position-none">
+			<Stack
+				direction="row"
+				gap="xs"
+				className="dataforms-layouts-panel__field dataforms-layouts-panel__field--label-position-none"
+			>
 				{ showError && (
 					<Tooltip text={ errorMessage } placement="top">
 						<Icon
@@ -242,13 +247,15 @@ export default function FormPanelField< Item >( {
 				<div className="dataforms-layouts-panel__field-control">
 					{ renderedControl }
 				</div>
-			</HStack>
+			</Stack>
 		);
 	}
 
 	// Defaults to label position side.
 	return (
-		<HStack
+		<Stack
+			direction="row"
+			gap="xs"
 			ref={ setPopoverAnchor }
 			className="dataforms-layouts-panel__field"
 		>
@@ -256,6 +263,6 @@ export default function FormPanelField< Item >( {
 			<div className="dataforms-layouts-panel__field-control">
 				{ renderedControl }
 			</div>
-		</HStack>
+		</Stack>
 	);
 }

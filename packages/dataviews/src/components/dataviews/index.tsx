@@ -6,9 +6,9 @@ import type { ReactNode, ComponentProps, ReactElement } from 'react';
 /**
  * WordPress dependencies
  */
-import { __experimentalHStack as HStack } from '@wordpress/components';
 import { useEffect, useMemo, useRef, useState } from '@wordpress/element';
 import { useResizeObserver, throttle } from '@wordpress/compose';
+import { Stack } from '@wordpress/ui';
 
 /**
  * Internal dependencies
@@ -90,29 +90,27 @@ function DefaultUI( {
 }: DefaultUIProps ) {
 	return (
 		<>
-			<HStack
-				alignment="top"
+			<Stack
+				direction="row"
+				align="top"
 				justify="space-between"
 				className="dataviews__view-actions"
-				spacing={ 1 }
+				gap="2xs"
 			>
-				<HStack
+				<Stack
+					direction="row"
 					justify="start"
-					expanded={ false }
+					gap="xs"
 					className="dataviews__search"
 				>
 					{ search && <DataViewsSearch label={ searchLabel } /> }
 					<FiltersToggle />
-				</HStack>
-				<HStack
-					spacing={ 1 }
-					expanded={ false }
-					style={ { flexShrink: 0 } }
-				>
+				</Stack>
+				<Stack direction="row" gap="2xs" style={ { flexShrink: 0 } }>
 					<DataViewsViewConfig />
 					{ header }
-				</HStack>
-			</HStack>
+				</Stack>
+			</Stack>
 			<FiltersToggled className="dataviews-filters__container" />
 			<DataViewsLayout />
 			<DataViewsFooter />

@@ -7,7 +7,6 @@ import deepMerge from 'deepmerge';
  * WordPress dependencies
  */
 import {
-	__experimentalHStack as HStack,
 	__experimentalSpacer as Spacer,
 	Button,
 	Modal,
@@ -15,6 +14,7 @@ import {
 import { __ } from '@wordpress/i18n';
 import { useContext, useState, useMemo } from '@wordpress/element';
 import { useFocusOnMount } from '@wordpress/compose';
+import { Stack } from '@wordpress/ui';
 
 /**
  * Internal dependencies
@@ -120,11 +120,12 @@ function ModalContent< Item >( {
 					) }
 				</DataFormLayout>
 			</div>
-			<HStack
+			<Stack
+				direction="row"
 				className="dataforms-layouts-panel__modal-footer"
-				spacing={ 3 }
+				gap="sm"
 			>
-				<Spacer />
+				<Spacer style={ { flex: 1 } } />
 				<Button
 					variant="tertiary"
 					onClick={ onClose }
@@ -139,7 +140,7 @@ function ModalContent< Item >( {
 				>
 					{ __( 'Apply' ) }
 				</Button>
-			</HStack>
+			</Stack>
 		</Modal>
 	);
 }

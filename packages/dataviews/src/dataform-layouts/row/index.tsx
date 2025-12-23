@@ -1,12 +1,8 @@
 /**
  * WordPress dependencies
  */
-import {
-	__experimentalHStack as HStack,
-	__experimentalSpacer as Spacer,
-	__experimentalVStack as VStack,
-	__experimentalHeading as Heading,
-} from '@wordpress/components';
+import { __experimentalHeading as Heading } from '@wordpress/components';
+import { Stack } from '@wordpress/ui';
 
 /**
  * Internal dependencies
@@ -23,14 +19,17 @@ import { getFormFieldLayout } from '..';
 
 function Header( { title }: { title: string } ) {
 	return (
-		<VStack className="dataforms-layouts-row__header" spacing={ 4 }>
-			<HStack alignment="center">
+		<Stack
+			direction="column"
+			className="dataforms-layouts-row__header"
+			gap="md"
+		>
+			<Stack direction="row" align="center">
 				<Heading level={ 2 } size={ 13 }>
 					{ title }
 				</Heading>
-				<Spacer />
-			</HStack>
-		</VStack>
+			</Stack>
+		</Stack>
 	);
 }
 
@@ -58,7 +57,7 @@ export default function FormRowField< Item >( {
 				{ ! hideLabelFromVision && field.label && (
 					<Header title={ field.label } />
 				) }
-				<HStack alignment={ layout.alignment } spacing={ 4 }>
+				<Stack direction="row" align={ layout.alignment } gap="md">
 					<DataFormLayout
 						data={ data }
 						form={ form }
@@ -82,7 +81,7 @@ export default function FormRowField< Item >( {
 							</div>
 						) }
 					</DataFormLayout>
-				</HStack>
+				</Stack>
 			</div>
 		);
 	}

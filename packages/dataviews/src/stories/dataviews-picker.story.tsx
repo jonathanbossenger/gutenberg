@@ -7,11 +7,8 @@ import type { Meta } from '@storybook/react';
  * WordPress dependencies
  */
 import { useState, useMemo, useCallback, useEffect } from '@wordpress/element';
-import {
-	Modal,
-	Button,
-	__experimentalHStack as HStack,
-} from '@wordpress/components';
+import { Modal, Button } from '@wordpress/components';
+import { Stack } from '@wordpress/ui';
 
 /**
  * Internal dependencies
@@ -241,7 +238,7 @@ export const WithModal = ( {
 
 	return (
 		<>
-			<HStack justify="left">
+			<Stack direction="row" justify="left" gap="xs">
 				<Button
 					variant="primary"
 					onClick={ () => setIsModalOpen( true ) }
@@ -255,7 +252,7 @@ export const WithModal = ( {
 				>
 					Clear Selection
 				</Button>
-			</HStack>
+			</Stack>
 			{ selectedItems.length > 0 && (
 				<p>
 					Selected:{ ' ' }
