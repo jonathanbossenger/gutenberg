@@ -56,15 +56,10 @@ module.exports = {
 			name: '@storybook/addon-docs',
 			options: { configureJSX: true },
 		},
-		'@storybook/addon-controls',
-		'@storybook/addon-viewport',
 		'@storybook/addon-a11y',
-		'@storybook/addon-toolbars',
-		'@storybook/addon-actions',
-		'@storybook/addon-interactions',
 		'@storybook/addon-webpack5-compiler-babel',
-		'storybook-source-link',
-		'@geometricpanda/storybook-addon-badges',
+		'storybook-addon-source-link',
+		'storybook-addon-tag-badges',
 		'./addons/design-system-theme/register',
 	],
 	framework: {
@@ -125,26 +120,6 @@ module.exports = {
 					{
 						test: /\.md$/,
 						type: 'asset/source',
-					},
-					{
-						test: /\/stories\/.+\.story\.(j|t)sx?$/,
-						use: [
-							{
-								// Adds a `sourceLink` parameter to the story metadata, based on the file path
-								loader: path.resolve(
-									__dirname,
-									'./webpack/source-link-loader.js'
-								),
-							},
-							{
-								// Reads `tags` from the story metadata and copies them to `badges`
-								loader: path.resolve(
-									__dirname,
-									'./webpack/copy-tags-to-badges.js'
-								),
-							},
-						],
-						enforce: 'post',
 					},
 					{
 						test: /\.scss$/,

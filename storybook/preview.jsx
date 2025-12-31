@@ -5,14 +5,17 @@ import {
 	Stories,
 	Subtitle,
 	Title,
-} from '@storybook/blocks';
+} from '@storybook/addon-docs/blocks';
+
+/**
+ * Internal dependencies
+ */
 import { WithGlobalCSS } from './decorators/with-global-css';
 import { WithMarginChecker } from './decorators/with-margin-checker';
 import { WithMaxWidthWrapper } from './decorators/with-max-width-wrapper';
 import { WithRTL } from './decorators/with-rtl';
 import { WithTheme } from './decorators/with-theme';
 import { WithDesignSystemTheme } from './decorators/with-design-system-theme';
-import badgesConfig from './badges';
 
 export const globalTypes = {
 	direction: {
@@ -99,8 +102,6 @@ export const decorators = [
 ];
 
 export const parameters = {
-	// For @geometricpanda/storybook-addon-badges
-	badgesConfig,
 	controls: {
 		sort: 'requiredFirst',
 	},
@@ -161,7 +162,31 @@ export const parameters = {
 			],
 		},
 	},
-	sourceLinkPrefix: 'https://github.com/WordPress/gutenberg/blob/trunk/',
+	sourceLink: {
+		links: {
+			// Disable default links
+			'component-vscode': () => undefined,
+			'story-vscode': () => undefined,
+			'addon-powered-by': () => undefined,
+			// Custom GitHub link
+			'story-github': ( { importPath } ) => {
+				if ( ! importPath ) {
+					return undefined;
+				}
+				// importPath is like "../packages/components/src/button/stories/index.story.tsx"
+				// Convert to component directory path: "packages/components/src/button"
+				const componentPath = importPath
+					.replace( /^\.\.\//, '' ) // Remove leading "../"
+					.replace( /^\.\//, '' ) // Remove leading "./" (for stories in storybook folder)
+					.replace( /\/stories\/.*$/, '' ); // Remove "/stories/..." suffix
+				return {
+					label: 'View source',
+					href: `https://github.com/WordPress/gutenberg/blob/trunk/${ componentPath }`,
+					icon: 'GithubIcon',
+				};
+			},
+		},
+	},
 };
 
 export const tags = [ 'autodocs' ];
