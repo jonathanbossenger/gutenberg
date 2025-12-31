@@ -141,3 +141,23 @@ export const NoticeListSubcomponent: StoryFn< typeof NoticeList > = () => {
 	);
 };
 NoticeListSubcomponent.storyName = 'NoticeList Subcomponent';
+
+/**
+ * Action buttons can be disabled.
+ */
+export const WithDisabledAction = Template.bind( {} );
+WithDisabledAction.args = {
+	...Default.args,
+	children: 'This notice has a disabled action.',
+	actions: [
+		{
+			label: 'Disabled action',
+			onClick: () => {},
+			disabled: true,
+		},
+		{
+			label: 'Enabled action',
+			onClick: () => {},
+		},
+	],
+};
