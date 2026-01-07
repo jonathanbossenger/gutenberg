@@ -149,8 +149,6 @@ function ReusableBlockControl( {
 	);
 }
 
-const EMPTY_OBJECT = {};
-
 function ReusableBlockEdit( {
 	name,
 	attributes: { ref, content },
@@ -173,7 +171,7 @@ function ReusableBlockEdit( {
 	const {
 		onNavigateToEntityRecord,
 		hasPatternOverridesSource,
-		supportedBlockTypesRaw,
+		supportedBlockTypes,
 	} = useSelect( ( select ) => {
 		const { getSettings } = select( blockEditorStore );
 		// For editing link to the site editor if the theme and user permissions support it.
@@ -182,15 +180,13 @@ function ReusableBlockEdit( {
 			hasPatternOverridesSource: !! getBlockBindingsSource(
 				'core/pattern-overrides'
 			),
-			supportedBlockTypesRaw:
+			supportedBlockTypes: Object.keys(
 				getSettings().__experimentalBlockBindingsSupportedAttributes ||
-				EMPTY_OBJECT,
+					{}
+			),
 		};
 	}, [] );
-	const supportedBlockTypes = useMemo(
-		() => Object.keys( supportedBlockTypesRaw ),
-		[ supportedBlockTypesRaw ]
-	);
+
 	const canOverrideBlocks = useMemo( () => {
 		const hasOverridableBlocks = ( _blocks ) =>
 			_blocks.some( ( block ) => {
