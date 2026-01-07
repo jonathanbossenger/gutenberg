@@ -187,21 +187,19 @@ function ReusableBlockEdit( {
 		};
 	}, [] );
 
-	const hasOverridableBlocks = ( _blocks ) =>
-		_blocks.some( ( block ) => {
-			if (
-				supportedBlockTypes.includes( block.name ) &&
-				isOverridableBlock( block )
-			) {
-				return true;
-			}
-			return hasOverridableBlocks( block.innerBlocks );
-		} );
-
-	const canOverrideBlocks = useMemo(
-		() => hasPatternOverridesSource && hasOverridableBlocks( blocks ),
-		[ hasPatternOverridesSource, hasOverridableBlocks, blocks ]
-	);
+	const canOverrideBlocks = useMemo( () => {
+		const hasOverridableBlocks = ( _blocks ) =>
+			_blocks.some( ( block ) => {
+				if (
+					supportedBlockTypes.includes( block.name ) &&
+					isOverridableBlock( block )
+				) {
+					return true;
+				}
+				return hasOverridableBlocks( block.innerBlocks );
+			} );
+		return hasPatternOverridesSource && hasOverridableBlocks( blocks );
+	}, [ hasPatternOverridesSource, blocks, supportedBlockTypes ] );
 
 	const { alignment, layout } = useInferredLayout( blocks, parentLayout );
 	const layoutClasses = useLayoutClasses( { layout }, name );
