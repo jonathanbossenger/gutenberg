@@ -1,9 +1,11 @@
 import { type ReactNode, type HTMLAttributes } from 'react';
-import { type ButtonProps as AriakitButtonProps } from '@ariakit/react';
-import { type ComponentProps } from '../utils/types';
+import type { Button as _Button } from '@base-ui/react/button';
+import type { ComponentProps } from '../utils/types';
+
+type _ButtonProps = ComponentProps< typeof _Button >;
 
 export interface ButtonProps
-	extends Omit< ComponentProps< 'button' >, 'disabled' | 'aria-pressed' > {
+	extends Omit< _ButtonProps, 'disabled' | 'aria-pressed' > {
 	/**
 	 * The variant of the button. Variants describe the visual style treatment
 	 * of the button.
@@ -43,7 +45,7 @@ export interface ButtonProps
 	 *
 	 * @default true
 	 */
-	accessibleWhenDisabled?: AriakitButtonProps[ 'accessibleWhenDisabled' ];
+	focusableWhenDisabled?: _ButtonProps[ 'focusableWhenDisabled' ];
 
 	/**
 	 * Indicates the current "pressed" state of toggle buttons. This should only
