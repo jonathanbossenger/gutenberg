@@ -29,27 +29,16 @@ import RichText from './rich-text';
 import Media from './media';
 import Link from './link';
 
-const CONTROLS = {
-	richtext: RichText,
-	media: Media,
-	link: Link,
-};
-
 /**
  * Creates a configured control component that wraps a custom control
  * and passes configuration as props.
  *
  * @param {Component} ControlComponent The React component for the control.
- * @param {string}    type             The type of control.
  * @param {Object}    config           The control configuration passed as a prop.
  *
  * @return {Function} A wrapped control component
  */
-function createConfiguredControl( ControlComponent, type, config ) {
-	if ( ! ControlComponent ) {
-		throw new Error( `Control type "${ type }" not found` );
-	}
-
+function createConfiguredControl( ControlComponent, config = {} ) {
 	return function ConfiguredControl( props ) {
 		return <ControlComponent { ...props } config={ config } />;
 	};
@@ -104,51 +93,33 @@ function BlockFields( {
 
 		return blockTypeFields.map( ( fieldDef ) => {
 			const field = {
-				id: fieldDef.id,
-				label: fieldDef.label,
-				type: fieldDef.type, // Use the field's type; DataForm will use built-in or custom Edit
+				...fieldDef,
 			};
 
-			// If the field defines a `mapping`, then custom `getValue` and `setValue`
-			// implementations are provided.
-			// These functions map from the inconsistent attribute keys found on blocks
-			// to consistent keys that the field can use internally (and back again).
-			// When `mapping` isn't provided, we can use the field API's default
-			// implementation of these functions.
-			if ( fieldDef.mapping ) {
-				field.getValue = ( { item } ) => {
-					// Extract mapped properties from the block attributes
-					const mappedValue = {};
-					Object.entries( fieldDef.mapping ).forEach(
-						( [ key, attrKey ] ) => {
-							mappedValue[ key ] = item[ attrKey ];
-						}
-					);
-					return mappedValue;
-				};
-				field.setValue = ( { value } ) => {
-					const attributeUpdates = {};
-					Object.entries( fieldDef.mapping ).forEach(
-						( [ key, attrKey ] ) => {
-							attributeUpdates[ attrKey ] = value[ key ];
-						}
-					);
-					return attributeUpdates;
-				};
-			}
-
-			// Only add custom Edit component if one exists for this type
-			const ControlComponent = CONTROLS[ fieldDef.type ];
-			if ( ControlComponent ) {
-				// Use EditConfig pattern: Edit is an object with control type and config props
-				field.Edit = createConfiguredControl(
-					ControlComponent,
-					fieldDef.type,
-					{
-						clientId,
-						fieldDef,
-					}
-				);
+			// These should be custom Edit components, not replaced here.
+			//
+			// - rich-text control: it needs clientId
+			// - link control: does not need anything extra
+			// - media control: needs the Edit config
+			if (
+				'string' === typeof fieldDef.Edit &&
+				fieldDef.Edit === 'rich-text'
+			) {
+				field.Edit = createConfiguredControl( RichText, {
+					clientId,
+				} );
+			} else if (
+				'string' === typeof fieldDef.Edit &&
+				fieldDef.Edit === 'link'
+			) {
+				field.Edit = createConfiguredControl( Link );
+			} else if (
+				'object' === typeof fieldDef.Edit &&
+				fieldDef.Edit.control === 'media'
+			) {
+				field.Edit = createConfiguredControl( Media, {
+					...fieldDef.Edit,
+				} );
 			}
 
 			return field;
