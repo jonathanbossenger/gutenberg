@@ -245,7 +245,7 @@ module.exports = {
 				'packages/*/src/**/*.[tj]s?(x)',
 				'storybook/stories/**/*.[tj]s?(x)',
 			],
-			excludedFiles: [ '**/*.native.js' ],
+			excludedFiles: [ '**/*.@(android|ios|native).[tj]s?(x)' ],
 			rules: {
 				'no-restricted-syntax': [ 'error', ...restrictedSyntax ],
 				'@wordpress/components-no-unsafe-button-disabled': 'error',
@@ -255,7 +255,7 @@ module.exports = {
 			files: [ 'packages/*/src/**/*.[tj]s?(x)' ],
 			excludedFiles: [
 				'packages/*/src/**/@(test|stories)/**',
-				'**/*.@(native|ios|android).js',
+				'**/*.@(android|ios|native).[tj]s?(x)',
 			],
 			rules: {
 				'no-restricted-syntax': [ 'error', ...restrictedSyntax ],
@@ -413,15 +413,16 @@ module.exports = {
 			// `checkLocalImports` flag, which adds the linting also to relative
 			// imports.
 			files: [ 'packages/components/src/**' ],
+			excludedFiles: [ '**/*.@(android|ios|native).[tj]s?(x)' ],
 			rules: {
 				'@wordpress/components-no-unsafe-button-disabled': [
 					'error',
 					{ checkLocalImports: true },
 				],
-				// '@wordpress/components-no-missing-40px-size-prop': [
-				// 	'error',
-				// 	{ checkLocalImports: true },
-				// ],
+				'@wordpress/components-no-missing-40px-size-prop': [
+					'error',
+					{ checkLocalImports: true },
+				],
 			},
 		},
 		{
