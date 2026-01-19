@@ -287,7 +287,7 @@ const getDefaultValues = ( projectTemplate, variant ) => {
 		version: '0.1.0',
 		requiresAtLeast: '6.8',
 		requiresPHP: '7.4',
-		testedUpTo: '6.7',
+		testedUpTo: '6.8',
 		wpScripts: true,
 		customScripts: {},
 		wpEnv: false,
