@@ -29,7 +29,6 @@ import {
 	BlockControls,
 } from '@wordpress/block-editor';
 import { EntityProvider, store as coreStore } from '@wordpress/core-data';
-
 import { useDispatch, useSelect } from '@wordpress/data';
 import {
 	__experimentalToolsPanel as ToolsPanel,
@@ -75,10 +74,10 @@ import MenuInspectorControls from './menu-inspector-controls';
 import DeletedNavigationWarning from './deleted-navigation-warning';
 import AccessibleDescription from './accessible-description';
 import AccessibleMenuDescription from './accessible-menu-description';
-import { DEFAULT_BLOCK } from '../constants';
 import { unlock } from '../../lock-unlock';
 import { useToolsPanelDropdownMenuProps } from '../../utils/hooks';
 import { isWithinNavigationOverlay } from '../../utils/is-within-overlay';
+import { DEFAULT_BLOCK } from '../constants';
 
 /**
  * Component that renders the Add page button for the Navigation block.
@@ -491,6 +490,18 @@ function Navigation( {
 			),
 		[ clientId ]
 	);
+
+	// Check if this navigation block is inside an overlay template part.
+	const isWithinOverlay = useSelect( () => isWithinNavigationOverlay(), [] );
+
+	// Force overlayMenu to 'never' if within an overlay template part
+	// to prevent overlays within overlays.
+	useEffect( () => {
+		if ( isWithinOverlay && overlayMenu !== 'never' ) {
+			setAttributes( { overlayMenu: 'never' } );
+		}
+	}, [ isWithinOverlay, overlayMenu, setAttributes ] );
+
 	const isResponsive = 'never' !== overlayMenu;
 	const blockProps = useBlockProps( {
 		ref: navRef,
@@ -803,7 +814,7 @@ function Navigation( {
 					</ToolsPanel>
 				) }
 			</InspectorControls>
-			{ isOverlayExperimentEnabled && (
+			{ isOverlayExperimentEnabled && ! isWithinOverlay && (
 				<InspectorControls>
 					<OverlayPanel
 						overlayMenu={ overlayMenu }
