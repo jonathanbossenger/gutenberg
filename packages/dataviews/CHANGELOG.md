@@ -10,6 +10,10 @@
 
 - DataViews: Move filtering logic in field types. [#74733](https://github.com/WordPress/gutenberg/pull/74733)
 
+### Enhancements
+
+- Include total items count in footer. [#73491](https://github.com/WordPress/gutenberg/pull/73491)
+
 ## 11.2.0 (2026-01-16)
 
 ### Code Quality
