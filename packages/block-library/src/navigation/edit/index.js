@@ -300,17 +300,25 @@ function Navigation( {
 	);
 
 	const recursionId = `navigationMenu/${ ref }`;
-	const hasAlreadyRendered = useHasRecursion( recursionId );
+
+	// Skip recursion check when in preview mode.
+	const recursionDetected = useHasRecursion( recursionId );
+	const { isPreviewMode, onNavigateToEntityRecord, currentTheme } = useSelect(
+		( select ) => {
+			const { getSettings } = select( blockEditorStore );
+			const settings = getSettings();
+			return {
+				isPreviewMode: settings.isPreviewMode,
+				onNavigateToEntityRecord: settings?.onNavigateToEntityRecord,
+				// Needed to construct the template part ID for the overlay preview.
+				currentTheme: select( coreStore ).getCurrentTheme()?.stylesheet,
+			};
+		},
+		[]
+	);
+	const hasAlreadyRendered = isPreviewMode ? false : recursionDetected;
 
 	const blockEditingMode = useBlockEditingMode();
-
-	const { onNavigateToEntityRecord } = useSelect( ( select ) => {
-		const { getSettings } = select( blockEditorStore );
-		const settings = getSettings();
-		return {
-			onNavigateToEntityRecord: settings?.onNavigateToEntityRecord,
-		};
-	}, [] );
 
 	const isOverlayExperimentEnabled =
 		typeof window !== 'undefined' &&
@@ -829,6 +837,7 @@ function Navigation( {
 						overlayMenuPreviewClasses={ overlayMenuPreviewClasses }
 						overlayMenuPreviewId={ overlayMenuPreviewId }
 						isResponsive={ isResponsive }
+						currentTheme={ currentTheme }
 					/>
 				</InspectorControls>
 			) }
