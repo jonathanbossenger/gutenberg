@@ -8,11 +8,18 @@ import fastDeepEqual from 'fast-deep-equal/es6/index.js';
  */
 // @ts-expect-error No exported types.
 import { __unstableSerializeAndClean } from '@wordpress/blocks';
-import { type CRDTDoc, type ObjectData, Y } from '@wordpress/sync';
+import {
+	type CRDTDoc,
+	type ObjectData,
+	type SyncConfig,
+	Y,
+} from '@wordpress/sync';
 
 /**
  * Internal dependencies
  */
+import { BaseAwareness } from '../awareness/base-awareness';
+import { type BaseState } from '../awareness/types';
 import {
 	mergeCrdtBlocks,
 	type Block,
@@ -48,6 +55,7 @@ export type PostChanges = Partial< Post > & {
 export interface YPostRecord extends YMapRecord {
 	author: number;
 	blocks: YBlocks;
+	categories: number[];
 	comment_status: string;
 	date: string | null;
 	excerpt: string;
@@ -67,6 +75,7 @@ export interface YPostRecord extends YMapRecord {
 const allowedPostProperties = new Set< string >( [
 	'author',
 	'blocks',
+	'categories',
 	'comment_status',
 	'date',
 	'excerpt',
@@ -95,7 +104,7 @@ const disallowedPostMetaKeys = new Set< string >( [
  * @param {Partial< ObjectData >} changes
  * @return {void}
  */
-export function defaultApplyChangesToCRDTDoc(
+function defaultApplyChangesToCRDTDoc(
 	ydoc: CRDTDoc,
 	changes: ObjectData
 ): void {
@@ -256,7 +265,7 @@ export function applyPostChangesToCRDTDoc(
 	}
 }
 
-export function defaultGetChangesFromCRDTDoc( crdtDoc: CRDTDoc ): ObjectData {
+function defaultGetChangesFromCRDTDoc( crdtDoc: CRDTDoc ): ObjectData {
 	return getRootMap( crdtDoc, CRDT_RECORD_MAP_KEY ).toJSON();
 }
 
@@ -395,6 +404,16 @@ export function getPostChangesFromCRDTDoc(
 
 	return changes;
 }
+
+/**
+ * This default sync config can be used for entities that are flat maps of
+ * primitive values and do not require custom logic to merge changes.
+ */
+export const defaultSyncConfig: SyncConfig< BaseState > = {
+	applyChangesToCRDTDoc: defaultApplyChangesToCRDTDoc,
+	createAwareness: ( ydoc: CRDTDoc ) => new BaseAwareness( ydoc ),
+	getChangesFromCRDTDoc: defaultGetChangesFromCRDTDoc,
+};
 
 /**
  * Extract the raw string value from a property that may be a string or an object

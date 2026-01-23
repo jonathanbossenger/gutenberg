@@ -66,6 +66,10 @@ export type ProviderCreator = (
 	options: ProviderCreatorOptions
 ) => Promise< ProviderCreatorResult >;
 
+export interface CollectionHandlers {
+	refetchRecords: () => Promise< void >;
+}
+
 export interface RecordHandlers {
 	addUndoMeta: ( ydoc: Y.Doc, meta: Map< string, any > ) => void;
 	editRecord: (
@@ -78,15 +82,15 @@ export interface RecordHandlers {
 	saveRecord: () => Promise< void >;
 }
 
-export interface SyncConfig {
+export interface SyncConfig< State extends object = {} > {
 	applyChangesToCRDTDoc: (
 		ydoc: Y.Doc,
 		changes: Partial< ObjectData >
 	) => void;
 	createAwareness?: (
 		ydoc: Y.Doc,
-		objectId: ObjectID
-	) => AwarenessState | undefined;
+		objectId?: ObjectID
+	) => AwarenessState< State > | undefined;
 	getChangesFromCRDTDoc: (
 		ydoc: Y.Doc,
 		editedRecord: ObjectData
@@ -110,12 +114,17 @@ export interface SyncManager {
 		record: ObjectData,
 		handlers: RecordHandlers
 	) => Promise< void >;
+	loadCollection: (
+		syncConfig: SyncConfig,
+		objectType: ObjectType,
+		handlers: CollectionHandlers
+	) => Promise< void >;
 	// undoManager is undefined until the first entity is loaded.
 	undoManager: SyncUndoManager | undefined;
 	unload: ( objectType: ObjectType, objectId: ObjectID ) => void;
 	update: (
 		objectType: ObjectType,
-		objectId: ObjectID,
+		objectId: ObjectID | null,
 		changes: Partial< ObjectData >,
 		origin: string,
 		isSave?: boolean
