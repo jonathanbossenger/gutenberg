@@ -14,6 +14,7 @@ import type { Awareness } from 'y-protocols/awareness';
  */
 import type { AwarenessState } from './awareness/awareness-state';
 import type { WORDPRESS_META_KEY_FOR_CRDT_DOC_PERSISTENCE } from './config';
+import type { SyncManagerUpdateOptions } from './manager';
 
 /* globalThis */
 declare global {
@@ -127,7 +128,7 @@ export interface SyncManager {
 		objectId: ObjectID | null,
 		changes: Partial< ObjectData >,
 		origin: string,
-		isSave?: boolean
+		options?: SyncManagerUpdateOptions
 	) => void;
 }
 
@@ -136,4 +137,5 @@ export interface SyncUndoManager extends WPUndoManager< ObjectData > {
 		ymap: Y.Map< any >,
 		handlers: Pick< RecordHandlers, 'addUndoMeta' | 'restoreUndoMeta' >
 	) => void;
+	stopCapturing: () => void;
 }
