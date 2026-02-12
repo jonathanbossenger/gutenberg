@@ -900,6 +900,7 @@ test.describe( 'Navigation block', () => {
 				await navigation.useBlockInserter();
 				const linkControlSearch = navigation.getLinkControlSearch();
 				await expect( linkControlSearch ).toBeFocused();
+				await page.keyboard.type( 'New Page Title' );
 			} );
 
 			await test.step( 'Should not show validation error on blur when input is empty', async () => {
@@ -923,6 +924,12 @@ test.describe( 'Navigation block', () => {
 				await page.keyboard.press( 'Enter' );
 			} );
 
+			const titleField = page.getByRole( 'textbox', { name: 'Title' } );
+
+			await test.step( 'Verify page title is pre-populated', async () => {
+				await expect( titleField ).toHaveValue( 'New Page Title' );
+			} );
+
 			await test.step( 'Verify Back button returns focus to Create page button', async () => {
 				const backButton = page.getByRole( 'button', { name: 'Back' } );
 				await expect( backButton ).toBeVisible();
@@ -937,9 +944,22 @@ test.describe( 'Navigation block', () => {
 				} );
 				await expect( createPageButton ).toBeVisible();
 				await expect( createPageButton ).toBeFocused();
+			} );
 
+			await test.step( 'Verify link control search still has the New Page Title', async () => {
+				const linkControlSearch = navigation.getLinkControlSearch();
+				await expect( linkControlSearch ).toHaveValue(
+					'New Page Title'
+				);
+			} );
+
+			await test.step( 'Go to page creation step', async () => {
 				// Re-open the Create page dialog
+				const createPageButton = page.getByRole( 'button', {
+					name: 'Create page',
+				} );
 				await createPageButton.click();
+				const backButton = page.getByRole( 'button', { name: 'Back' } );
 				await expect( backButton ).toBeVisible();
 				await expect( backButton ).toBeFocused();
 			} );
@@ -948,10 +968,8 @@ test.describe( 'Navigation block', () => {
 				// Tab to the title field
 				await page.keyboard.press( 'Tab' );
 
-				await expect(
-					page.getByRole( 'textbox', { name: 'Title' } )
-				).toBeFocused();
-				await page.keyboard.type( 'Newly Created Page' );
+				await expect( titleField ).toBeFocused();
+				await expect( titleField ).toHaveValue( 'New Page Title' );
 				const createPageButton = page.getByRole( 'button', {
 					name: 'Create page',
 				} );
@@ -979,7 +997,7 @@ test.describe( 'Navigation block', () => {
 
 				// The link preview should show the newly created page
 				const previewLink =
-					navigation.getLinkControlLink( 'Newly Created Page' );
+					navigation.getLinkControlLink( 'New Page Title' );
 				await expect( previewLink ).toBeVisible();
 
 				// Focus should be on the link preview
