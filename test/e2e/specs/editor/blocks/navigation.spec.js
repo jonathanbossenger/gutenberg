@@ -973,15 +973,14 @@ test.describe( 'Navigation block', () => {
 				const createPageButton = page.getByRole( 'button', {
 					name: 'Create page',
 				} );
-				// Publish the page immediately
+				// Verify the Publish checkbox (on by default)
 				await page.keyboard.press( 'Tab' );
 				const publishCheckbox = page.getByRole( 'checkbox', {
-					name: 'Publish immediately',
+					name: 'Publish',
 				} );
 				// expect to be on the checkbox
 				await expect( publishCheckbox ).toBeFocused();
-				await page.keyboard.press( 'Space' );
-				// expect the checkbox to be checked
+				// expect the checkbox to be checked (publish is the default)
 				await expect( publishCheckbox ).toBeChecked();
 				// Tab to the Create page button
 				await pageUtils.pressKeys( 'Tab', { times: 2 } );
