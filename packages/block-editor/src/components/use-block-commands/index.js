@@ -18,12 +18,12 @@ import {
 	ungroup,
 	seen,
 	unseen,
+	blockDefault as blockDefaultIcon,
 } from '@wordpress/icons';
 
 /**
  * Internal dependencies
  */
-import BlockIcon from '../block-icon';
 import { store as blockEditorStore } from '../../store';
 import { unlock } from '../../lock-unlock';
 
@@ -118,13 +118,24 @@ const getTransformCommands = () =>
 		const commands = possibleBlockTransformations.map(
 			( transformation ) => {
 				const { name, title, icon } = transformation;
+				/*
+				 * Command menu uses Icon from @wordpress/icons, which expects a ReactElement
+				 * (cloneElement). Normalize to blockDefaultIcon to avoid crash. See #55668 / PR #55676.
+				 */
+				const blockIcon =
+					! icon?.src || icon?.src === 'block-default'
+						? {
+								src: blockDefaultIcon,
+						  }
+						: icon;
+
 				return {
 					name:
 						'core/block-editor/transform-to-' +
 						name.replace( '/', '-' ),
 					/* translators: %s: Block or block variation name. */
 					label: sprintf( __( 'Transform to %s' ), title ),
-					icon: <BlockIcon icon={ icon } />,
+					icon: blockIcon?.src,
 					callback: ( { close } ) => {
 						onBlockTransform( name );
 						close();
