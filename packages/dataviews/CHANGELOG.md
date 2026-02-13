@@ -24,6 +24,9 @@
 - Add new `adaptiveSelect` DataForm control. [#74937](https://github.com/WordPress/gutenberg/pull/74937)
 - DataViews: Consistent rendering of selection checkbox and actions in grid layout. [#75056](https://github.com/WordPress/gutenberg/pull/75056)
 
+### Code Quality
+- DataForm: Style SummaryButton in panel layout with `is-disabled` classname. [#75470](https://github.com/WordPress/gutenberg/pull/75470)
+
 ### Internal
 
 - DataForm: Use public `ColorPicker` component instead of internal `Picker` in color control. [#75394](https://github.com/WordPress/gutenberg/pull/75394)
