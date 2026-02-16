@@ -22,7 +22,7 @@ import { directive } from './hooks';
 import { getNamespace } from './namespaces';
 import { parseServerData, populateServerData } from './store';
 import { proxifyState } from './proxies';
-import { deepReadOnly, navigationSignal, onDOMReady } from './utils';
+import { deepReadOnly, navigationSignal, onDOMReady, warn } from './utils';
 
 export {
 	store,
@@ -86,6 +86,7 @@ export const privateApis = (
 			routerRegions,
 			deepReadOnly,
 			navigationSignal,
+			warn,
 		};
 	}
 
