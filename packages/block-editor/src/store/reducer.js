@@ -1870,9 +1870,27 @@ export function preferences( state = PREFERENCES_DEFAULTS, action ) {
  */
 export const blockListSettings = ( state = {}, action ) => {
 	switch ( action.type ) {
-		// Even if the replaced blocks have the same client ID, our logic
-		// should correct the state.
-		case 'REPLACE_BLOCKS':
+		case 'REPLACE_BLOCKS': {
+			// Collect all clientIds from replacement blocks. If a clientId
+			// is reused, preserve its settings — the block instance (and
+			// its InnerBlocks config) survived the replace. Settings for
+			// clientIds that are truly removed get cleaned up so stale
+			// config from old block types doesn't linger.
+			const replacementIds = new Set();
+			const stack = [ ...action.blocks ];
+			while ( stack.length ) {
+				const block = stack.shift();
+				replacementIds.add( block.clientId );
+				stack.push( ...block.innerBlocks );
+			}
+			return Object.fromEntries(
+				Object.entries( state ).filter(
+					( [ id ] ) =>
+						! action.clientIds.includes( id ) ||
+						replacementIds.has( id )
+				)
+			);
+		}
 		case 'REMOVE_BLOCKS': {
 			return Object.fromEntries(
 				Object.entries( state ).filter(
