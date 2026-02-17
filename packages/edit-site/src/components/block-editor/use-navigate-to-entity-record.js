@@ -3,8 +3,10 @@
  */
 import { privateApis as routerPrivateApis } from '@wordpress/router';
 import { useCallback } from '@wordpress/element';
+import { useRegistry } from '@wordpress/data';
 import { addQueryArgs } from '@wordpress/url';
-import { privateApis as editorPrivateApis } from '@wordpress/editor';
+import { store as coreStore } from '@wordpress/core-data';
+import { store as editorStore } from '@wordpress/editor';
 
 /**
  * Internal dependencies
@@ -12,53 +14,47 @@ import { privateApis as editorPrivateApis } from '@wordpress/editor';
 import { unlock } from '../../lock-unlock';
 
 const { useHistory, useLocation } = unlock( routerPrivateApis );
-const { useGenerateBlockPath } = unlock( editorPrivateApis );
 
 /**
- * Hook to handle navigation to entity records and retrieve initial block selection.
+ * Hook to handle navigation to entity records.
  *
- * @return {Array} A tuple containing:
- *   - onNavigateToEntityRecord: Function to navigate to an entity record
- *   - initialBlockSelection: The block path or clientId to restore selection, or null if none stored
+ * @return {Function} Function to navigate to an entity record.
  */
 export default function useNavigateToEntityRecord() {
 	const history = useHistory();
-	const { query, path } = useLocation();
-	const generateBlockPath = useGenerateBlockPath();
-
-	// Get the selected block from URL parameters and decode the block path
-	let initialBlockSelection = null;
-	if ( query.selectedBlock ) {
-		try {
-			initialBlockSelection = JSON.parse(
-				decodeURIComponent( query.selectedBlock )
-			);
-		} catch ( e ) {
-			// Invalid JSON, ignore
-			initialBlockSelection = null;
-		}
-	}
+	const location = useLocation();
+	const { query, path } = location;
+	const registry = useRegistry();
 
 	const onNavigateToEntityRecord = useCallback(
 		( params ) => {
-			// First, update the current URL to include the selected block path for when we navigate back
-			if ( params.selectedBlockClientId ) {
-				const blockPath = generateBlockPath(
-					params.selectedBlockClientId
+			// Read entity selection (already has external IDs from onChangeSelection)
+			const currentPostType = registry
+				.select( editorStore )
+				.getCurrentPostType();
+			const currentPostId = registry
+				.select( editorStore )
+				.getCurrentPostId();
+			const entityEdits = registry
+				.select( coreStore )
+				.getEntityRecordEdits(
+					'postType',
+					currentPostType,
+					currentPostId
 				);
-				if ( blockPath ) {
-					// Encode the block path as JSON in the URL
-					const currentUrl = addQueryArgs( path, {
-						...query,
-						selectedBlock: encodeURIComponent(
-							JSON.stringify( blockPath )
-						),
-					} );
-					history.navigate( currentUrl, { replace: true } );
-				}
+			const externalClientId =
+				entityEdits?.selection?.selectionStart?.clientId;
+
+			// Store the selected block in the URL for restoration when navigating back.
+			if ( externalClientId ) {
+				const currentUrl = addQueryArgs( path, {
+					...query,
+					selectedBlock: externalClientId,
+				} );
+				history.navigate( currentUrl, { replace: true } );
 			}
 
-			// Then navigate to the new entity record
+			// Navigate to the new entity record
 			const url = addQueryArgs(
 				`/${ params.postType }/${ params.postId }`,
 				{
@@ -69,8 +65,8 @@ export default function useNavigateToEntityRecord() {
 
 			history.navigate( url );
 		},
-		[ history, path, query, generateBlockPath ]
+		[ history, path, query, registry ]
 	);
 
-	return [ onNavigateToEntityRecord, initialBlockSelection ];
+	return onNavigateToEntityRecord;
 }

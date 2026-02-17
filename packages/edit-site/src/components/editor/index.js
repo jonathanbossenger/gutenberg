@@ -114,6 +114,7 @@ function getNavigationPath( location, postType ) {
 export default function EditSiteEditor( { isHomeRoute = false } ) {
 	const disableMotion = useReducedMotion();
 	const location = useLocation();
+	const history = useHistory();
 	const { canvas = 'view' } = location.query;
 	const isLoading = useIsSiteEditorLoading();
 	useAdaptEditorToCanvas( canvas );
@@ -143,12 +144,10 @@ export default function EditSiteEditor( { isHomeRoute = false } ) {
 		'edit-site-editor__loading-progress'
 	);
 
-	const settings = useSpecificEditorSettings();
-	const { initialBlockSelection, ...editorSettings } = settings;
+	const editorSettings = useSpecificEditorSettings();
 	const { resetZoomLevel } = unlock( useDispatch( blockEditorStore ) );
 	const { setCurrentRevisionId } = unlock( useDispatch( editorStore ) );
 	const { createSuccessNotice } = useDispatch( noticesStore );
-	const history = useHistory();
 	const onActionPerformed = useCallback(
 		( actionId, items ) => {
 			switch ( actionId ) {
@@ -226,7 +225,6 @@ export default function EditSiteEditor( { isHomeRoute = false } ) {
 					postId={ postWithTemplate ? context.postId : postId }
 					templateId={ postWithTemplate ? postId : undefined }
 					settings={ editorSettings }
-					initialSelection={ initialBlockSelection }
 					className="edit-site-editor__editor-interface"
 					customSaveButton={
 						_isPreviewingTheme && <SaveButton size="compact" />
