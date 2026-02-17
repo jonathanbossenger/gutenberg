@@ -207,5 +207,47 @@ test.describe( 'Navigation Overlay Template Part', () => {
 			await closeButtons.last().click();
 			await expect( openMenuButton ).toBeVisible();
 		} );
+
+		test( 'As a site builder, I want to insert a core navigation overlay pattern with CTA and see it on the frontend', async ( {
+			page,
+			editor,
+		} ) => {
+			await page.getByRole( 'tab', { name: 'Template Part' } ).click();
+
+			const designTab = page.getByRole( 'button', {
+				name: 'Design',
+			} );
+			await expect( designTab ).toBeVisible();
+
+			await expect( page.getByRole( 'option' ).first() ).toBeVisible();
+
+			const ctaPattern = page.getByRole( 'option', {
+				name: /Overlay with site info and CTA/i,
+			} );
+			await expect( ctaPattern ).toBeVisible();
+			await ctaPattern.click();
+
+			const siteTitleBlock = editor.canvas.getByRole( 'document', {
+				name: /Block: Site Title/i,
+			} );
+			await expect( siteTitleBlock ).toBeVisible();
+
+			await page
+				.getByRole( 'region', { name: 'Editor top bar' } )
+				.getByRole( 'button', { name: 'Back', exact: true } )
+				.click();
+
+			await editor.saveSiteEditorEntities();
+
+			await page.goto( '/' );
+
+			const openMenuButton = page.getByRole( 'button', {
+				name: 'Open menu',
+			} );
+			await openMenuButton.click();
+
+			const ctaButton = page.getByText( 'Get started today!' );
+			await expect( ctaButton ).toBeVisible();
+		} );
 	} );
 } );
