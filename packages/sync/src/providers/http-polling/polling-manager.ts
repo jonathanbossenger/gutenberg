@@ -50,6 +50,7 @@ interface RegisterRoomOptions {
 
 interface RoomState {
 	clientId: number;
+	createCompactionUpdate: () => SyncUpdate;
 	endCursor: number;
 	localAwarenessState: LocalAwarenessState;
 	log: LogFunction;
@@ -67,9 +68,11 @@ const roomStates: Map< string, RoomState > = new Map();
  * the original operation metadata (client IDs, logical clocks) so that
  * Yjs deduplication works correctly when the compaction is applied.
  *
+ * Deprecated: The server is moving towards full state updates for compaction.
+ *
  * @param updates The updates to merge
  */
-function createCompactionUpdate( updates: SyncUpdate[] ): SyncUpdate {
+function createDeprecatedCompactionUpdate( updates: SyncUpdate[] ): SyncUpdate {
 	// Extract only compaction and update types for merging (skip sync-step updates).
 	// Decode base64 updates to Uint8Array for merging.
 	const mergeable = updates
@@ -306,11 +309,21 @@ function poll(): void {
 				roomState.updateQueue.addBulk( responseUpdates );
 
 				// Respond to compaction requests from server. The server asks only one
-				// client at a time to compact (lowest active client ID). We merge the
-				// received updates (the server has given us everything it has).
-				if ( room.compaction_request ) {
+				// client at a time to compact (lowest active client ID). We encode our
+				// full document state to replace all prior updates on the server.
+				if ( room.should_compact ) {
+					roomState.log( 'Server requested compaction update' );
+					roomState.updateQueue.clear();
 					roomState.updateQueue.add(
-						createCompactionUpdate( room.compaction_request )
+						roomState.createCompactionUpdate()
+					);
+				} else if ( room.compaction_request ) {
+					// Deprecated
+					roomState.log( 'Server requested (old) compaction update' );
+					roomState.updateQueue.add(
+						createDeprecatedCompactionUpdate(
+							room.compaction_request
+						)
 					);
 				}
 			} );
@@ -387,6 +400,11 @@ function registerRoom( {
 
 	const roomState: RoomState = {
 		clientId: doc.clientID,
+		createCompactionUpdate: () =>
+			createSyncUpdate(
+				Y.encodeStateAsUpdate( doc ),
+				SyncUpdateType.COMPACTION
+			),
 		endCursor: 0,
 		localAwarenessState: awareness.getLocalState() ?? {},
 		log,
