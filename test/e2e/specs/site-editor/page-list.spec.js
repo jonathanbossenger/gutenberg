@@ -358,7 +358,9 @@ test.describe( 'Page List', () => {
 			await page.getByRole( 'menuitemradio', { name: 'Table' } ).click();
 
 			// Trigger Quick Edit action on Privacy Policy row
-			const row = page.getByRole( 'row', { name: /Privacy Policy/ } );
+			const row = page
+				.getByRole( 'row', { name: /Privacy Policy/ } )
+				.first();
 			await row.getByRole( 'button', { name: 'Quick Edit' } ).click();
 		} );
 
