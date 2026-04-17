@@ -13,6 +13,7 @@
 ### Internal
 
 -   Extract shared `useScheduleValidation` hook; refactor `Dialog`, `Popover`, and `Tabs` validation contexts to use it ([#77165](https://github.com/WordPress/gutenberg/pull/77165)).
+-   `Tabs`: Wrap two validation timeout waits in `act(...)` to avoid intermittent test warnings ([#77319](https://github.com/WordPress/gutenberg/pull/77319)).
 
 ## 0.11.0 (2026-04-15)
 
