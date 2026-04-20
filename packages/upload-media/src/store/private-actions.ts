@@ -14,7 +14,9 @@ type WPDataRegistry = ReturnType< typeof createRegistry >;
  * Internal dependencies
  */
 import { cloneFile, convertBlobToFile, renameFile } from '../utils';
-import { CLIENT_SIDE_SUPPORTED_MIME_TYPES } from './constants';
+import { canvasConvertToJpeg } from '../canvas-utils';
+import { isClientSideMediaSupported } from '../feature-detection';
+import { CLIENT_SIDE_SUPPORTED_MIME_TYPES, HEIC_MIME_TYPES } from './constants';
 import { StubFile } from '../stub-file';
 import { UploadError } from '../upload-error';
 import {
@@ -63,6 +65,7 @@ type ActionCreators = {
 	addItem: typeof addItem;
 	addSideloadItem: typeof addSideloadItem;
 	removeItem: typeof removeItem;
+	pauseItem: typeof pauseItem;
 	prepareItem: typeof prepareItem;
 	processItem: typeof processItem;
 	finishOperation: typeof finishOperation;
@@ -310,7 +313,14 @@ export function processItem( id: QueueItemId ) {
 		}
 
 		if ( attachment ) {
-			onChange?.( [ attachment ] );
+			// Don't update the block with a HEIC URL — the browser can't
+			// display it.  The scaled JPEG sideload will call onChange
+			// with a usable URL once the client-side conversion completes.
+			const isHeicUrl =
+				attachment.url && /\.hei[cf]$/i.test( attachment.url );
+			if ( ! isHeicUrl ) {
+				onChange?.( [ attachment ] );
+			}
 		}
 
 		/*
@@ -671,11 +681,13 @@ export function prepareItem( id: QueueItemId ) {
 
 		const operations: Operation[] = [];
 		const settings = select.getSettings();
+		let heicJpeg: File | null = null;
 
 		const isImage = file.type.startsWith( 'image/' );
 		const isVipsSupported = CLIENT_SIDE_SUPPORTED_MIME_TYPES.includes(
 			file.type
 		);
+		const isHeic = HEIC_MIME_TYPES.includes( file.type );
 
 		// For images that can be processed by vips, check if we need to scale down based on threshold.
 		if ( isImage && isVipsSupported ) {
@@ -700,6 +712,36 @@ export function prepareItem( id: QueueItemId ) {
 				OperationType.ThumbnailGeneration,
 				OperationType.Finalize
 			);
+		} else if ( isImage && isHeic ) {
+			// HEIC/HEIF: convert to JPEG client-side before upload.
+			// The server may not support HEIC, so decode it using the
+			// browser's native HEVC codec (createImageBitmap or VideoDecoder)
+			// and upload the resulting JPEG. The server then handles it like
+			// any normal JPEG (threshold scaling, sub-sizes, etc.).
+			// This matches iOS behavior where HEIC is converted on the fly.
+			try {
+				heicJpeg = await canvasConvertToJpeg(
+					file,
+					settings.imageQuality ?? DEFAULT_OUTPUT_QUALITY
+				);
+			} catch {
+				dispatch.cancelItem(
+					id,
+					new UploadError( {
+						code: 'HEIC_DECODE_ERROR',
+						message:
+							'This browser cannot decode HEIC images and the server does not support them either. Please convert to JPEG before uploading.',
+						file,
+					} )
+				);
+				return;
+			}
+
+			operations.push(
+				OperationType.Upload,
+				OperationType.ThumbnailGeneration,
+				OperationType.Finalize
+			);
 		} else {
 			operations.push( OperationType.Upload );
 		}
@@ -712,16 +754,34 @@ export function prepareItem( id: QueueItemId ) {
 
 		// If the file is not processed by vips, tell the server to
 		// generate sub-sizes since they won't be created client-side.
-		const updates =
-			! isVipsSupported || ! isImage
-				? {
-						additionalData: {
-							...item.additionalData,
-							generate_sub_sizes: true,
-							convert_format: true,
-						},
-				  }
-				: {};
+		let updates: Partial< QueueItem > = {};
+		if ( isHeic && heicJpeg ) {
+			// HEIC was converted to JPEG client-side. Upload the JPEG
+			// and let the server handle it normally (threshold scaling,
+			// sub-sizes, format conversion). Keep the original HEIC in
+			// a separate field so it can be sideloaded as the "original"
+			// after upload, preserving the user's file without leaking it
+			// into paths that expect an editor-supported image.
+			const vipsAvailable = isClientSideMediaSupported();
+			updates = {
+				file: heicJpeg,
+				sourceFile: heicJpeg,
+				originalHeicFile: item.file,
+				additionalData: {
+					...item.additionalData,
+					generate_sub_sizes: ! vipsAvailable,
+					convert_format: true,
+				},
+			};
+		} else if ( ! isVipsSupported || ! isImage ) {
+			updates = {
+				additionalData: {
+					...item.additionalData,
+					generate_sub_sizes: true,
+					convert_format: true,
+				},
+			};
+		}
 
 		dispatch.finishOperation( id, updates );
 	};
@@ -1029,46 +1089,69 @@ export function generateThumbnails( id: QueueItemId ) {
 			return;
 		}
 		const attachment = item.attachment;
+		const settings = select.getSettings();
+
+		// HEIC/HEIF: preserve the original file under a dedicated metadata
+		// key so it never collides with `original_image`, which the scaled
+		// sideload flow owns. The HEIC was kept on item.originalHeicFile;
+		// the uploaded file is a JPEG conversion. parentId guarantees
+		// processItem routes this to the sideload endpoint, never the main
+		// create endpoint.
+		if ( item.originalHeicFile && attachment.id ) {
+			dispatch.addSideloadItem( {
+				file: item.originalHeicFile,
+				batchId: uuidv4(),
+				parentId: item.id,
+				additionalData: {
+					post: attachment.id,
+					image_size: 'original-heic',
+					convert_format: false,
+				},
+				operations: [ OperationType.Upload ],
+			} );
+		}
 
 		// Check if image needs rotation.
 		// If exif_orientation is not 1, the image needs rotation.
 		// Images that were scaled (bigImageSizeThreshold) are already rotated by vips.
-		const needsRotation =
-			attachment.exif_orientation &&
-			attachment.exif_orientation !== 1 &&
-			! item.file.name.includes( '-scaled' );
+		{
+			const needsRotation =
+				attachment.exif_orientation &&
+				attachment.exif_orientation !== 1 &&
+				! item.file.name.includes( '-scaled' );
 
-		// If rotation is needed for a non-scaled image, sideload the rotated version.
-		// This matches WordPress core's behavior of creating a -rotated version.
-		if ( needsRotation && attachment.id ) {
-			try {
-				const rotatedFile = await vipsRotateImage(
-					item.id,
-					item.sourceFile,
-					attachment.exif_orientation as number,
-					item.abortController?.signal
-				);
+			// If rotation is needed for a non-scaled image, sideload the rotated version.
+			// This matches WordPress core's behavior of creating a -rotated version.
+			if ( needsRotation && attachment.id ) {
+				try {
+					const rotatedFile = await vipsRotateImage(
+						item.id,
+						item.sourceFile,
+						attachment.exif_orientation as number,
+						item.abortController?.signal
+					);
 
-				// Sideload the rotated file as the "original" to set original_image metadata.
-				// The server will store this in $metadata['original_image'].
-				dispatch.addSideloadItem( {
-					file: rotatedFile,
-					batchId: uuidv4(),
-					parentId: item.id,
-					additionalData: {
-						post: attachment.id,
-						image_size: 'original',
-						convert_format: false,
-					},
-					operations: [ OperationType.Upload ],
-				} );
-			} catch {
-				// If rotation fails, continue with thumbnail generation.
-				// Thumbnails will still be rotated correctly by vips.
-				// eslint-disable-next-line no-console
-				console.warn(
-					'Failed to rotate image, continuing with thumbnails'
-				);
+					// Sideload the rotated file as the "original" to set original_image metadata.
+					// The server will store this in $metadata['original_image'].
+					dispatch.addSideloadItem( {
+						file: rotatedFile,
+						batchId: uuidv4(),
+						parentId: item.id,
+						additionalData: {
+							post: attachment.id,
+							image_size: 'original',
+							convert_format: false,
+						},
+						operations: [ OperationType.Upload ],
+					} );
+				} catch {
+					// If rotation fails, continue with thumbnail generation.
+					// Thumbnails will still be rotated correctly by vips.
+					// eslint-disable-next-line no-console
+					console.warn(
+						'Failed to rotate image, continuing with thumbnails'
+					);
+				}
 			}
 		}
 
@@ -1078,17 +1161,14 @@ export function generateThumbnails( id: QueueItemId ) {
 			attachment.missing_image_sizes &&
 			attachment.missing_image_sizes.length > 0
 		) {
-			const settings = select.getSettings();
 			const allImageSizes = settings.allImageSizes || {};
 			const sizesToGenerate: string[] =
 				attachment.missing_image_sizes as string[];
 
-			// Use sourceFile for thumbnail generation to preserve quality.
-			// WordPress core generates thumbnails from the original (unscaled) image.
-			// Vips will auto-rotate based on EXIF orientation during thumbnail generation.
+			const thumbnailSource = item.sourceFile;
 			const file = attachment.filename
-				? renameFile( item.sourceFile, attachment.filename )
-				: item.sourceFile;
+				? renameFile( thumbnailSource, attachment.filename )
+				: thumbnailSource;
 			const batchId = uuidv4();
 
 			const { imageOutputFormats } = settings;
@@ -1096,7 +1176,7 @@ export function generateThumbnails( id: QueueItemId ) {
 			// Check if thumbnails should be transcoded to a different format.
 			// Uses the same transparency-aware logic as the main image
 			// to avoid converting transparent PNGs to JPEG.
-			const sourceType = item.sourceFile.type;
+			const sourceType = thumbnailSource.type;
 			const outputMimeType = imageOutputFormats?.[ sourceType ];
 
 			let thumbnailTranscodeOperation:
@@ -1108,7 +1188,7 @@ export function generateThumbnails( id: QueueItemId ) {
 
 			if ( outputMimeType && outputMimeType !== sourceType ) {
 				thumbnailTranscodeOperation = await getTranscodeImageOperation(
-					item.sourceFile,
+					thumbnailSource,
 					outputMimeType,
 					settings
 				);
@@ -1152,56 +1232,60 @@ export function generateThumbnails( id: QueueItemId ) {
 				} );
 			}
 
-			// Create and sideload the scaled version.
-			const { bigImageSizeThreshold } = settings;
-			if ( bigImageSizeThreshold && attachment.id ) {
-				// Check if the image actually exceeds the threshold.
-				// Only create a scaled version for images larger than the threshold,
-				// matching WordPress core's wp_create_image_subsizes() behavior.
-				const bitmap = await createImageBitmap( item.sourceFile );
-				const needsScaling =
-					bitmap.width > bigImageSizeThreshold ||
-					bitmap.height > bigImageSizeThreshold;
-				bitmap.close();
+			// Create and sideload the scaled version if it exceeds the threshold.
+			{
+				const { bigImageSizeThreshold } = settings;
+				if ( bigImageSizeThreshold && attachment.id ) {
+					// Check if the image actually exceeds the threshold.
+					// Only create a scaled version for images larger than the threshold,
+					// matching WordPress core's wp_create_image_subsizes() behavior.
+					const bitmap = await createImageBitmap( thumbnailSource );
+					const needsScaling =
+						bitmap.width > bigImageSizeThreshold ||
+						bitmap.height > bigImageSizeThreshold;
+					bitmap.close();
 
-				if ( needsScaling ) {
-					// Rename sourceFile to match the server attachment filename.
-					const sourceForScaled = attachment.filename
-						? renameFile( item.sourceFile, attachment.filename )
-						: item.sourceFile;
+					if ( needsScaling ) {
+						// Rename sourceFile to match the server attachment filename.
+						const sourceForScaled = attachment.filename
+							? renameFile( thumbnailSource, attachment.filename )
+							: thumbnailSource;
 
-					// Add scaling to queue.
-					const scaledOperations: Operation[] = [
-						[
-							OperationType.ResizeCrop,
-							{
-								resize: {
-									width: bigImageSizeThreshold,
-									height: bigImageSizeThreshold,
+						// Add scaling to queue.
+						const scaledOperations: Operation[] = [
+							[
+								OperationType.ResizeCrop,
+								{
+									resize: {
+										width: bigImageSizeThreshold,
+										height: bigImageSizeThreshold,
+									},
+									isThresholdResize: true,
 								},
-								isThresholdResize: true,
+							],
+						];
+
+						// Add transcoding if format conversion is configured.
+						if ( thumbnailTranscodeOperation ) {
+							scaledOperations.push(
+								thumbnailTranscodeOperation
+							);
+						}
+
+						scaledOperations.push( OperationType.Upload );
+
+						dispatch.addSideloadItem( {
+							file: sourceForScaled,
+							batchId,
+							parentId: item.id,
+							additionalData: {
+								post: attachment.id,
+								image_size: 'scaled',
+								convert_format: false,
 							},
-						],
-					];
-
-					// Add transcoding if format conversion is configured.
-					if ( thumbnailTranscodeOperation ) {
-						scaledOperations.push( thumbnailTranscodeOperation );
+							operations: scaledOperations,
+						} );
 					}
-
-					scaledOperations.push( OperationType.Upload );
-
-					dispatch.addSideloadItem( {
-						file: sourceForScaled,
-						batchId,
-						parentId: item.id,
-						additionalData: {
-							post: attachment.id,
-							image_size: 'scaled',
-							convert_format: false,
-						},
-						operations: scaledOperations,
-					} );
 				}
 			}
 		}
