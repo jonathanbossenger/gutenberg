@@ -5,7 +5,11 @@
  * The client accumulates these and sends them all to the finalize endpoint.
  */
 export interface SubSizeData {
-	image_size: string;
+	/**
+	 * Size name, or an array of names when the same sideloaded file is
+	 * registered under multiple sizes that share identical dimensions.
+	 */
+	image_size: string | string[];
 	width?: number;
 	height?: number;
 	file: string;
@@ -329,8 +333,8 @@ export type AdditionalData = Record< string, unknown >;
 export interface SideloadAdditionalData extends AdditionalData {
 	/** The attachment ID to add the image size to. */
 	post: number;
-	/** The name of the image size being generated (e.g., 'thumbnail', 'medium'). */
-	image_size: string;
+	/** The name(s) of the image size being generated (e.g., 'thumbnail', 'medium'). When multiple size names share the same dimensions, an array can be passed to register one file under all names. */
+	image_size: string | string[];
 }
 
 export type ImageFormat = 'jpeg' | 'webp' | 'avif' | 'png' | 'gif';

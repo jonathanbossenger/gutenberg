@@ -893,6 +893,120 @@ class Gutenberg_REST_Attachments_Controller_Test extends WP_Test_REST_Post_Type_
 	}
 
 	/**
+	 * Verifies that sideloading with an array of size names returns the array
+	 * preserved in the sub_size response, and that finalize registers the same
+	 * file under every name.
+	 *
+	 * This supports deduplication of client-side generated sub-sizes when multiple
+	 * registered sizes share identical dimensions (e.g. Twenty Eleven's `large`
+	 * is 768x1024, matching core's `medium_large`). One physical file should be
+	 * registered under every matching size name.
+	 *
+	 * @covers ::sideload_item
+	 * @covers ::finalize_item
+	 * @covers ::register_routes
+	 */
+	public function test_sideload_item_accepts_array_of_image_sizes() {
+		wp_set_current_user( self::$admin_id );
+
+		$request = new WP_REST_Request( 'POST', '/wp/v2/media' );
+		$request->set_header( 'Content-Type', 'image/jpeg' );
+		$request->set_header( 'Content-Disposition', 'attachment; filename=dedup-array.jpg' );
+		$request->set_param( 'generate_sub_sizes', false );
+
+		$request->set_body( file_get_contents( DIR_TESTDATA . '/images/canola.jpg' ) );
+		$response      = rest_get_server()->dispatch( $request );
+		$data          = $response->get_data();
+		$attachment_id = $data['id'];
+
+		// Register a custom size with the same dimensions as `medium` so both
+		// sizes resolve to one sideloaded file.
+		add_image_size( 'duplicate_of_medium', 300, 300, false );
+
+		// Sideload one physical file for both sizes.
+		$request = new WP_REST_Request( 'POST', "/wp/v2/media/$attachment_id/sideload" );
+		$request->set_header( 'Content-Type', 'image/jpeg' );
+		$request->set_header( 'Content-Disposition', 'attachment; filename=dedup-array-300x200.jpg' );
+		$request->set_param( 'image_size', array( 'medium', 'duplicate_of_medium' ) );
+
+		$request->set_body( file_get_contents( DIR_TESTDATA . '/images/canola.jpg' ) );
+		$response      = rest_get_server()->dispatch( $request );
+		$sub_size_data = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		// The sideload response should preserve the array of size names so the
+		// client can forward it to finalize as a single sub-size entry.
+		$this->assertSame(
+			array( 'medium', 'duplicate_of_medium' ),
+			$sub_size_data['image_size']
+		);
+		$this->assertSame( 'dedup-array-300x200.jpg', $sub_size_data['file'] );
+
+		// Finalize: one sub-size entry with an array of names should register
+		// the same file under each name.
+		$request = new WP_REST_Request( 'POST', "/wp/v2/media/$attachment_id/finalize" );
+		$request->set_param( 'sub_sizes', array( $sub_size_data ) );
+
+		$response = rest_get_server()->dispatch( $request );
+		$this->assertSame( 200, $response->get_status() );
+
+		remove_image_size( 'duplicate_of_medium' );
+
+		$metadata = wp_get_attachment_metadata( $attachment_id, true );
+		$this->assertArrayHasKey( 'medium', $metadata['sizes'] );
+		$this->assertArrayHasKey( 'duplicate_of_medium', $metadata['sizes'] );
+		$this->assertSame( 'dedup-array-300x200.jpg', $metadata['sizes']['medium']['file'] );
+		$this->assertSame( 'dedup-array-300x200.jpg', $metadata['sizes']['duplicate_of_medium']['file'] );
+		$this->assertSame(
+			$metadata['sizes']['medium']['file'],
+			$metadata['sizes']['duplicate_of_medium']['file']
+		);
+	}
+
+	/**
+	 * Verifies that sideloading with a single-element array of size names
+	 * returns sub_size_data that finalize applies equivalently to a plain string.
+	 *
+	 * @covers ::sideload_item
+	 * @covers ::finalize_item
+	 */
+	public function test_sideload_item_accepts_single_element_array() {
+		wp_set_current_user( self::$admin_id );
+
+		$request = new WP_REST_Request( 'POST', '/wp/v2/media' );
+		$request->set_header( 'Content-Type', 'image/jpeg' );
+		$request->set_header( 'Content-Disposition', 'attachment; filename=dedup-single.jpg' );
+		$request->set_param( 'generate_sub_sizes', false );
+
+		$request->set_body( file_get_contents( DIR_TESTDATA . '/images/canola.jpg' ) );
+		$response      = rest_get_server()->dispatch( $request );
+		$data          = $response->get_data();
+		$attachment_id = $data['id'];
+
+		$request = new WP_REST_Request( 'POST', "/wp/v2/media/$attachment_id/sideload" );
+		$request->set_header( 'Content-Type', 'image/jpeg' );
+		$request->set_header( 'Content-Disposition', 'attachment; filename=dedup-single-thumb.jpg' );
+		$request->set_param( 'image_size', array( 'thumbnail' ) );
+
+		$request->set_body( file_get_contents( DIR_TESTDATA . '/images/canola.jpg' ) );
+		$response      = rest_get_server()->dispatch( $request );
+		$sub_size_data = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( array( 'thumbnail' ), $sub_size_data['image_size'] );
+
+		$request = new WP_REST_Request( 'POST', "/wp/v2/media/$attachment_id/finalize" );
+		$request->set_param( 'sub_sizes', array( $sub_size_data ) );
+
+		$response = rest_get_server()->dispatch( $request );
+		$this->assertSame( 200, $response->get_status() );
+
+		$metadata = wp_get_attachment_metadata( $attachment_id, true );
+		$this->assertArrayHasKey( 'thumbnail', $metadata['sizes'] );
+		$this->assertSame( 'dedup-single-thumb.jpg', $metadata['sizes']['thumbnail']['file'] );
+	}
+
+	/**
 	 * Verifies that finalize writes sub-size metadata from the sub_sizes parameter.
 	 *
 	 * @covers ::finalize_item
