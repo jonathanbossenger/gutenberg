@@ -618,6 +618,17 @@ export default dedupePlugins( [
 		},
 	},
 
+	// Override: UI src — check local imports for unsafe render order rule.
+	{
+		files: [ 'packages/ui/src/**' ],
+		rules: {
+			'@wordpress/no-unsafe-render-order': [
+				'error',
+				{ checkLocalImports: true },
+			],
+		},
+	},
+
 	// Override: Components src (non-test, non-stories) — DOM globals rules.
 	{
 		files: [ 'packages/components/src/**' ],
