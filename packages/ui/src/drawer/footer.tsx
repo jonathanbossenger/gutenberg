@@ -5,14 +5,14 @@ import styles from './style.module.css';
 import type { FooterProps } from './types';
 
 /**
- * Renders the footer section of the dialog, typically containing
+ * Renders the footer section of the drawer, typically containing
  * action buttons.
  *
  * Defaults to a native `<footer>` element for richer semantics (contentinfo
  * landmark navigation where screen readers expose landmarks nested in
  * dialogs). Pass `render` to opt out of the default tag.
  */
-const Footer = forwardRef< HTMLElement, FooterProps >( function DialogFooter(
+const Footer = forwardRef< HTMLElement, FooterProps >( function DrawerFooter(
 	{ className, render, ...props },
 	ref
 ) {
