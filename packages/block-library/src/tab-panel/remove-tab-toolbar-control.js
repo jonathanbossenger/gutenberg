@@ -10,9 +10,9 @@ import { __ } from '@wordpress/i18n';
 import { useDispatch, useSelect } from '@wordpress/data';
 
 /**
- * "Remove Tab" button in the block toolbar for the tab block.
- * Removes the currently active core/tab and its corresponding
- * core/tabs-menu-item, keeping both in sync.
+ * "Remove Tab" button in the block toolbar for the tabs block.
+ * Removes the currently active core/tab-panel and its corresponding
+ * core/tab, keeping both in sync.
  *
  * @param {Object} props
  * @param {string} props.tabsClientId The client ID of the parent tabs block.
@@ -27,16 +27,16 @@ export default function RemoveTabToolbarControl( { tabsClientId } ) {
 	} = useDispatch( blockEditorStore );
 
 	const {
+		activeTabPanelClientId,
 		activeTabClientId,
-		activeMenuItemClientId,
 		tabCount,
 		editorActiveTabIndex,
 	} = useSelect(
 		( select ) => {
 			if ( ! tabsClientId ) {
 				return {
+					activeTabPanelClientId: null,
 					activeTabClientId: null,
-					activeMenuItemClientId: null,
 					tabCount: 0,
 					editorActiveTabIndex: 0,
 				};
@@ -49,19 +49,20 @@ export default function RemoveTabToolbarControl( { tabsClientId } ) {
 				tabsAttributes?.activeTabIndex ??
 				0;
 			const innerBlocks = getBlocks( tabsClientId );
-			const tabPanel = innerBlocks.find(
-				( block ) => block.name === 'core/tab-panel'
+			const tabPanels = innerBlocks.find(
+				( block ) => block.name === 'core/tab-panels'
 			);
-			const tabsMenu = innerBlocks.find(
-				( block ) => block.name === 'core/tabs-menu'
+			const tabList = innerBlocks.find(
+				( block ) => block.name === 'core/tab-list'
 			);
-			const tabs = tabPanel?.innerBlocks || [];
-			const menuItems = tabsMenu?.innerBlocks || [];
+			const tabPanelBlocks = tabPanels?.innerBlocks || [];
+			const tabs = tabList?.innerBlocks || [];
+			const activeTabPanel = tabPanelBlocks[ activeIndex ];
 			const activeTab = tabs[ activeIndex ];
-			const activeMenuItem = menuItems[ activeIndex ];
+
 			return {
+				activeTabPanelClientId: activeTabPanel?.clientId || null,
 				activeTabClientId: activeTab?.clientId || null,
-				activeMenuItemClientId: activeMenuItem?.clientId || null,
 				tabCount: tabs.length,
 				editorActiveTabIndex: activeIndex,
 			};
@@ -70,7 +71,7 @@ export default function RemoveTabToolbarControl( { tabsClientId } ) {
 	);
 
 	const removeTab = () => {
-		if ( ! activeTabClientId || tabCount <= 1 ) {
+		if ( ! activeTabPanelClientId || tabCount <= 1 ) {
 			return;
 		}
 
@@ -85,10 +86,10 @@ export default function RemoveTabToolbarControl( { tabsClientId } ) {
 			editorActiveTabIndex: newActiveIndex,
 		} );
 
-		// Remove the tab content block and the corresponding menu item.
-		removeBlock( activeTabClientId, false );
-		if ( activeMenuItemClientId ) {
-			removeBlock( activeMenuItemClientId, false );
+		// Remove the tab panel and corresponding tab
+		removeBlock( activeTabPanelClientId, false );
+		if ( activeTabClientId ) {
+			removeBlock( activeTabClientId, false );
 		}
 
 		if ( tabsClientId ) {
@@ -96,7 +97,7 @@ export default function RemoveTabToolbarControl( { tabsClientId } ) {
 		}
 	};
 
-	const isDisabled = tabCount <= 1 || ! activeTabClientId;
+	const isDisabled = tabCount <= 1 || ! activeTabPanelClientId;
 
 	return (
 		<BlockControls group="other">
