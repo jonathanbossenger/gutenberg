@@ -123,10 +123,20 @@ export function computeLockedResizeRect(
 	bounds: CropBounds,
 	normalizedRatio: number
 ): NormalizedRect {
-	const dx =
-		imageSize.width > 0 ? ( clientX - drag.startX ) / imageSize.width : 0;
-	const dy =
-		imageSize.height > 0 ? ( clientY - drag.startY ) / imageSize.height : 0;
+	// The math below divides by `normalizedRatio` and `imageSize`, so
+	// bail out with the start rect when any of them is zero. This can
+	// happen if a resize is triggered (e.g. via keyboard arrows on a
+	// focused handle) before the image has loaded.
+	if (
+		normalizedRatio <= 0 ||
+		imageSize.width <= 0 ||
+		imageSize.height <= 0
+	) {
+		return { ...drag.startRect };
+	}
+
+	const dx = ( clientX - drag.startX ) / imageSize.width;
+	const dy = ( clientY - drag.startY ) / imageSize.height;
 
 	const s = drag.startRect;
 	const handle = drag.handle;
@@ -154,10 +164,15 @@ export function computeLockedResizeRect(
 	distH = Math.max( distH, MIN_CROP_SIZE );
 
 	// Determine which axis "drives" — whichever the user moved more
-	// (in pixel space) determines the size, the other follows.
+	// (in pixel space) determines the size, the other follows. The
+	// `normalizedRatio` is w/h in normalized space; the equivalent
+	// pixel-space ratio is `normalizedRatio * imageW / imageH`. We
+	// compare the pixel motion ratio against that pixel-space ratio
+	// so the units line up (was a unit mismatch on non-square images).
 	const pixelDistW = distW * imageSize.width;
 	const pixelDistH = distH * imageSize.height;
-	if ( pixelDistW / pixelDistH > normalizedRatio ) {
+	const pixelRatio = ( normalizedRatio * imageSize.width ) / imageSize.height;
+	if ( pixelDistW / pixelDistH > pixelRatio ) {
 		// Width is the driver — compute height from ratio.
 		distH = distW / normalizedRatio;
 	} else {
