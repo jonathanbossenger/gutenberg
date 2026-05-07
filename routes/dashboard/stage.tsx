@@ -33,6 +33,7 @@ function Dashboard() {
 				actions={ <WidgetDashboard.Actions /> }
 			>
 				<div className={ styles[ 'dashboard-widgets-container' ] }>
+					<WidgetDashboard.NoWidgetsState />
 					<WidgetDashboard.Widgets />
 				</div>
 			</Page>
