@@ -1,22 +1,11 @@
 /**
- * External dependencies
+ * Internal dependencies
  */
-import type { useDraggable } from '@dnd-kit/core';
-
-// `useDraggable`'s `listeners` and `attributes` types are not exported
-// from `@dnd-kit/core`'s public surface, so derive them from the hook
-// itself rather than via a deep import.
-type DraggableBindings = ReturnType< typeof useDraggable >;
-
-/**
- * Cursor offset reported by the resize handle, in pixels relative to
- * the gesture start. Width and height are independent so the grid can
- * step columns and rows separately.
- */
-export type ResizeDelta = {
-	width: number;
-	height: number;
-};
+import type {
+	DragPreviewRenderProps,
+	ResizeDelta,
+	ResizeHandleRenderProps,
+} from '../shared/types';
 
 /**
  * Dashboard grid layout item definition.
@@ -51,110 +40,6 @@ export type DashboardGridLayoutItem = {
 	 */
 	order?: number;
 };
-
-/**
- * Props received by a custom resize handle component. Spread `listeners`
- * and `attributes` onto the element that should respond to the gesture,
- * and assign `ref` to the same element so dnd-kit can track it.
- */
-export interface ResizeHandleRenderProps {
-	/**
-	 * Ref callback to attach to the gesture-bearing element.
-	 */
-	ref: DraggableBindings[ 'setNodeRef' ];
-
-	/**
-	 * Pointer/keyboard event listeners that initiate the drag.
-	 */
-	listeners: DraggableBindings[ 'listeners' ];
-
-	/**
-	 * Accessibility and dnd-kit attributes (role, aria-*, tabIndex…).
-	 */
-	attributes: DraggableBindings[ 'attributes' ];
-
-	/**
-	 * Whether vertical resizing is allowed for this tile. Useful for
-	 * adapting the cursor or visual cue.
-	 */
-	verticalResizable: boolean;
-
-	/**
-	 * True while the user is actively dragging this handle. Use it to
-	 * swap colors, icons, or transforms during the gesture.
-	 */
-	isResizing: boolean;
-
-	/**
-	 * Owning grid item's `key`. Available so consumers can render
-	 * per-tile content if needed.
-	 */
-	itemId?: string;
-}
-
-/**
- * Props received by a custom drag-preview component. The grid mounts
- * the component inside `<DragOverlay>` and supplies the active tile's
- * cloned children plus its `key`. The component is responsible for
- * the visual chrome of the dragged clone (shadow, radius, padding);
- * the grid keeps a thin functional wrapper around it that owns the
- * lift cue, the cursor, and pointer pass-through during the gesture.
- */
-export interface DragPreviewRenderProps {
-	/**
-	 * The cloned tile content the surface mounts inside the
-	 * `<DragOverlay>` portal. Render it wherever the visual wrapper
-	 * expects the tile body.
-	 */
-	children: React.ReactNode;
-
-	/**
-	 * Owning tile's `key`. Useful when the visual chrome needs to
-	 * vary by which tile is being dragged.
-	 */
-	itemId: string;
-}
-
-/**
- * Props for the internal `<ResizeHandle />` wrapper.
- */
-export interface ResizeHandleProps {
-	/**
-	 * Owning grid item's `key`. Forwarded as `data.itemId` on the
-	 * draggable so the parent can correlate the gesture with a tile
-	 * if needed.
-	 */
-	itemId?: string;
-
-	/**
-	 * Whether the handle should track vertical movement. When false,
-	 * the handle still appears but only emits horizontal deltas, and
-	 * the cursor is constrained to the column resize axis.
-	 *
-	 * @default true
-	 */
-	verticalResizable?: boolean;
-
-	/**
-	 * Callback fired while the handle is being dragged. Receives the
-	 * cursor offset from the gesture start in pixels.
-	 */
-	onResize?: ( delta: ResizeDelta ) => void;
-
-	/**
-	 * Callback fired when the gesture ends.
-	 */
-	onResizeEnd?: () => void;
-
-	/**
-	 * Component that overrides the default corner triangle with a
-	 * custom element. Receives gesture wiring (`ref`, `listeners`,
-	 * `attributes`) plus context. The grid keeps ownership of the
-	 * `<DndContext>` and the throttled delta loop; consumers are only
-	 * responsible for the visual.
-	 */
-	renderResizeHandle?: React.ComponentType< ResizeHandleRenderProps >;
-}
 
 /**
  * Props for the internal `<GridItem />` wrapper.
@@ -203,7 +88,7 @@ export type GridItemProps = {
 
 	/**
 	 * Content rendered above the draggable area that stays interactive
-	 * in edit mode — typically action buttons, menus, or links. While
+	 * in edit mode, typically action buttons, menus, or links. While
 	 * any tile in the grid is being dragged or resized, this content
 	 * is set `inert` so hovers on other tiles can't steal the gesture.
 	 */
@@ -245,8 +130,9 @@ interface BaseDashboardGridProps
 
 	/**
 	 * Grid children. Each child must carry a `key` that matches an
-	 * entry in `layout`; children without a match are rendered outside
-	 * the grid.
+	 * entry in `layout`; children without a match render at the end
+	 * of the grid without explicit placement and fall through CSS
+	 * Grid's auto-flow.
 	 */
 	children: React.ReactNode;
 
@@ -311,23 +197,16 @@ interface BaseDashboardGridProps
 	renderResizeHandle?: React.ComponentType< ResizeHandleRenderProps >;
 
 	/**
-	 * Custom wrapper for the dragged-clone visual mounted inside
-	 * `<DragOverlay>`. The grid always wraps the clone with a thin
-	 * functional frame (lift scale, grabbing cursor, pointer pass-
-	 * through) and mounts this component inside it, so consumers only
-	 * own the visual chrome (shadow, radius, padding).
+	 * through) and mounts this component inside it; the consumer
+	 * owns the visual chrome (shadow, radius, padding).
 	 *
-	 * When omitted, the grid renders the cloned children directly
-	 * inside the functional frame, letting any chrome the consumer
-	 * applied to the persistent tile carry through to the dragged
-	 * clone unchanged.
+	 * When omitted, the cloned children render directly inside the
+	 * functional frame so any chrome the consumer applied to the
+	 * persistent tile carries through unchanged.
 	 *
-	 * Token-only adjustments (lift scale, placeholder opacity, outline
-	 * color, placeholder radius) flow through CSS custom properties
-	 * documented in the README; reach for this prop when the dragged
-	 * state needs structurally different chrome from the persistent
-	 * tile (e.g., a stronger shadow, a different border, an extra
-	 * badge).
+	 * Token-only adjustments (lift scale, placeholder opacity,
+	 * outline color, placeholder radius) flow through CSS custom
+	 * properties documented in the README.
 	 */
 	renderDragPreview?: React.ComponentType< DragPreviewRenderProps >;
 }

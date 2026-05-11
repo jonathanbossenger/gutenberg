@@ -20,7 +20,7 @@
 	outline:
 		var(--wpds-border-width-sm) dashed
 		var(--wp-grid-placeholder-outline-color, var(--wpds-color-stroke-interactive-brand));
-	border-radius: var(--wp-grid-placeholder-radius, var(--wpds-border-radius-lg));
+	border-radius: var(--wp-grid-placeholder-radius, 0);
 }
 
 @media (forced-colors: active) {

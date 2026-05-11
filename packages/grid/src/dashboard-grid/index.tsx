@@ -37,11 +37,8 @@ import {
  */
 import { GridItem } from './grid-item';
 import { resolveFillWidths } from './resolve-fill-widths';
-import type {
-	DashboardGridLayoutItem,
-	DashboardGridProps,
-	ResizeDelta,
-} from './types';
+import type { DashboardGridLayoutItem, DashboardGridProps } from './types';
+import type { ResizeDelta } from '../shared/types';
 import styles from './grid.module.css';
 
 // Reorder is driven by `temporaryLayout` + CSS Grid, not by dnd-kit
@@ -57,7 +54,8 @@ const NO_SORT_STRATEGY = () => null;
  * widths, and multi-row tiles.
  *
  * Each child's `key` must match an entry in the `layout` array;
- * children without a match are rendered outside the grid.
+ * children without a match render at the end of the grid without
+ * explicit placement and fall through CSS Grid's auto-flow.
  *
  * @example
  * ```jsx
