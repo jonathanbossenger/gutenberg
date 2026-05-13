@@ -18,6 +18,7 @@ import deleteTaxonomyAction from './actions/delete';
 import duplicateTaxonomyAction from './actions/duplicate';
 import viewTermsAction from './actions/view-terms';
 import {
+	countField,
 	hierarchicalField,
 	publicField,
 	useObjectTypeField,
@@ -38,7 +39,7 @@ const DEFAULT_VIEW: View = {
 	type: 'table',
 	perPage: 20,
 	page: 1,
-	fields: [ 'object_type', 'status', 'public' ],
+	fields: [ 'object_type', 'count', 'status' ],
 	titleField: 'title',
 	layout: {},
 };
@@ -85,6 +86,7 @@ export function TaxonomiesList() {
 			[
 				titleField,
 				objectTypeField,
+				countField,
 				statusField,
 				publicField,
 				slugField,
