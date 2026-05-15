@@ -144,6 +144,11 @@ export function Draggable( {
 
 		cloneWrapper.classList.add( ...cloneWrapperClasses );
 
+		const inSlotClass = styles[ 'is-in-compat-slot' ];
+		if ( compatSlot && inSlotClass ) {
+			cloneWrapper.classList.add( inSlotClass );
+		}
+
 		if ( cloneClassname ) {
 			cloneWrapper.classList.add( cloneClassname );
 		}
