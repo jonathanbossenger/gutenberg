@@ -36,6 +36,30 @@ export function getRelativeRootSelector( rootSelector ) {
 }
 
 /**
+ * Builds the scoped selector for root block style state styles.
+ *
+ * Uses the block's `selectors.root` to determine which element should receive
+ * root-level state styles. If `selectors.root` describes a descendant element
+ * (e.g. `.wp-block-button .wp-block-button__link`), the relative portion is
+ * scoped under `baseSelector`. If no descendant is present, falls back to the
+ * base selector.
+ *
+ * @param {string} baseSelector The block-instance scoping class selector.
+ * @param {string} name         The block name, used to look up selectors.
+ * @return {string} The fully-scoped CSS selector for root state styles.
+ */
+export function buildRootStyleStateSelector( baseSelector, name ) {
+	const rootSelector = getBlockType( name )?.selectors?.root;
+	if ( rootSelector ) {
+		const relativeSelector = getRelativeRootSelector( rootSelector );
+		if ( relativeSelector ) {
+			return scopeSelector( baseSelector, relativeSelector );
+		}
+	}
+	return baseSelector;
+}
+
+/**
  * Builds the scoped CSS selector for a block state (e.g. :hover, :focus).
  *
  * Uses the block's `selectors.root` to determine which element the state
@@ -49,15 +73,8 @@ export function getRelativeRootSelector( rootSelector ) {
  * @param {string} state        The pseudo-class string, e.g. ":hover".
  * @return {string} The fully-scoped CSS selector for this state.
  */
-export function buildStateSelector( baseSelector, name, state ) {
-	const rootSelector = getBlockType( name )?.selectors?.root;
-	if ( rootSelector ) {
-		const relativeSelector = getRelativeRootSelector( rootSelector );
-		if ( relativeSelector ) {
-			return scopeSelector( baseSelector, relativeSelector + state );
-		}
-	}
-	return `${ baseSelector }${ state }`;
+export function buildPseudoStyleStateSelector( baseSelector, name, state ) {
+	return `${ buildRootStyleStateSelector( baseSelector, name ) }${ state }`;
 }
 
 /**
