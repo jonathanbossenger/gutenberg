@@ -170,6 +170,20 @@ export function initializeEditor(
 		// network request from here on. `clearPreloadedData` logs which
 		// preload entries (if any) were never served.
 		clearPreloadedData();
+		if ( postType && postId ) {
+			const post = select( coreDataStore ).getEntityRecord(
+				'postType',
+				postType,
+				postId
+			);
+			if ( post ) {
+				dispatch( editorStore ).setupEditor(
+					post,
+					initialEdits,
+					settings.template
+				);
+			}
+		}
 		root.render(
 			<StrictMode>
 				<Layout
